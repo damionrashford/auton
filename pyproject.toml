@@ -27,6 +27,8 @@ dependencies = [
     "tiktoken>=0.8.0",
     # Coinbase AgentKit for blockchain operations (optional at runtime)
     "coinbase-agentkit>=0.1.0",
+    # Async Redis task queue for bounded concurrency
+    "arq>=0.26.0",
 ]
 
 [project.optional-dependencies]

@@ -268,6 +268,44 @@ async def agent_lifespan(server: FastMCP):
     else:
         logger.info("Blockchain: skipped (not configured).")
 
+    # 7c. Initialize Shopify store management tools (optional).
+    if settings.shopify_enabled and settings.shopify_admin_api_token:
+        try:
+            from auton.shopify import (
+                SHOPIFY_TOOLS,
+                ShopifyService,
+                handle_shopify_tool,
+            )
+
+            shopify_svc = ShopifyService(
+                store_domain=settings.shopify_store_domain,
+                admin_token=settings.shopify_admin_api_token,
+                storefront_token=settings.shopify_storefront_api_token,
+                api_version=settings.shopify_api_version,
+            )
+            await shopify_svc.start()
+            if shopify_svc.is_connected:
+                bridge.register_internal_tools(
+                    SHOPIFY_TOOLS,
+                    handler=lambda name, args: handle_shopify_tool(
+                        shopify_svc, name, args
+                    ),
+                    source="shopify",
+                )
+                logger.info(
+                    "Shopify: %d tools registered for %s.",
+                    len(SHOPIFY_TOOLS),
+                    settings.shopify_store_domain,
+                )
+            else:
+                logger.warning("Shopify: service init failed.")
+        except Exception:
+            logger.warning(
+                "Shopify initialization failed.", exc_info=True
+            )
+    else:
+        logger.info("Shopify: skipped (not configured).")
+
     # 8. Webhook service (outbound + inbound subscription management).
     if settings.webhook_enabled:
         try:
@@ -329,9 +367,6 @@ async def agent_lifespan(server: FastMCP):
 
     registry = AgentRegistry(settings)
 
-    # The parent_conversation_id is set dynamically per-request via mutable ref
-    _parent_cid_ref: list[str] = [""]
-
     orchestrator = OrchestratorAgent(
         bridge=bridge,
         llm=llm,
@@ -341,7 +376,7 @@ async def agent_lifespan(server: FastMCP):
     )
 
     # Register delegation tools on the bridge (orchestrator-only tools)
-    delegation_handler = make_delegation_handler(orchestrator, _parent_cid_ref)
+    delegation_handler = make_delegation_handler(orchestrator)
     bridge.register_internal_tools(
         DELEGATION_TOOLS,
         handler=delegation_handler,
@@ -350,6 +385,15 @@ async def agent_lifespan(server: FastMCP):
     logger.info(
         "Multi-agent orchestrator initialized: %d delegation tools.",
         len(DELEGATION_TOOLS),
+    )
+
+    # 9b. Create bounded concurrency queue for agent runs.
+    from auton.queue import AgentQueue
+
+    agent_queue = AgentQueue(orchestrator=orchestrator, settings=settings)
+    logger.info(
+        "Agent queue: max %d concurrent runs.",
+        settings.max_concurrent_agent_runs,
     )
 
     # 10. Inject singletons for DI resolution.
@@ -379,6 +423,7 @@ async def agent_lifespan(server: FastMCP):
                 app_token=settings.slack_app_token,
                 orchestrator=orchestrator,
                 memory_store=memory_store,
+                agent_queue=agent_queue,
             )
             await slack_bolt_ui.start()
             if slack_bolt_ui.is_running:

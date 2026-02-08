@@ -28,6 +28,16 @@ WRITE_TOOLS = frozenset(
         "webhook_send",
         "webhook_create_subscription",
         "webhook_delete_subscription",
+        # Shopify write operations
+        "shop_product_create",
+        "shop_product_update",
+        "shop_order_update",
+        "shop_customer_update",
+        "shop_inventory_adjust",
+        "shop_collection_create",
+        "shop_discount_create",
+        "shop_fulfillment_create",
+        "shop_metafield_set",
         # Google Workspace write operations (pattern-matched)
         "gw_send_email",
         "gw_create_event",
@@ -49,6 +59,14 @@ _GW_DANGEROUS_KEYWORDS = frozenset(
         "move", "modify", "batch", "transfer", "remove",
         "import", "manage", "clear", "draft", "run",
         "set_publish",
+    }
+)
+
+# Keywords that indicate Shopify write operations
+_SHOP_DANGEROUS_KEYWORDS = frozenset(
+    {
+        "create", "update", "delete", "adjust", "set",
+        "fulfillment_create",
     }
 )
 
@@ -83,6 +101,22 @@ READ_TOOLS = frozenset(
         "gw_list_files",
         "gw_read_file",
         "gw_read_sheet",
+        # Shopify read operations
+        "shop_info",
+        "shop_products_list",
+        "shop_product_get",
+        "shop_orders_list",
+        "shop_order_get",
+        "shop_customers_list",
+        "shop_customer_get",
+        "shop_inventory_query",
+        "shop_collections_list",
+        "shop_discounts_list",
+        "shop_fulfillments_list",
+        "shop_metafields_query",
+        "shop_pages_list",
+        "shop_storefront_products",
+        "shop_storefront_cart_create",
     }
 )
 
@@ -118,6 +152,11 @@ def requires_confirmation(
     # ALL blockchain tools require confirmation (every action is a transaction)
     if tool_name.startswith("cb_"):
         return True
+
+    # Pattern-match Shopify tools (shop_ prefix)
+    if tool_name.startswith("shop_"):
+        if any(keyword in tool_name for keyword in _SHOP_DANGEROUS_KEYWORDS):
+            return True
 
     # All other tools are considered safe
     return False

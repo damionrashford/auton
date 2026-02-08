@@ -296,10 +296,14 @@ class Settings(BaseSettings):
         description="Redis database number for session state.",
     )
 
-    # ── Docket (background tasks) ──────────────────────────────────
+    # ── Task Queue (arq) ───────────────────────────────────────────
     docket_url: str = Field(
         default="redis://localhost:6379/2",
-        description="Redis URL for Docket task queue backend.",
+        description="Redis URL for arq task queue backend.",
+    )
+    max_concurrent_agent_runs: int = Field(
+        default=3,
+        description="Max concurrent agent runs across all sources (Slack, cron, MCP).",
     )
 
     # ── Agent behaviour ─────────────────────────────────────────────
@@ -381,6 +385,10 @@ class Settings(BaseSettings):
         default=10,
         description="Max iterations for the blockchain agent.",
     )
+    multi_agent_shopify_max_iterations: int = Field(
+        default=15,
+        description="Max iterations for the Shopify agent.",
+    )
 
     # ── Coinbase AgentKit (optional) ─────────────────────────────────
     blockchain_enabled: bool = Field(
@@ -402,6 +410,28 @@ class Settings(BaseSettings):
     cdp_wallet_secret: str = Field(
         default="",
         description="CDP wallet secret for server wallets.",
+    )
+
+    # ── Shopify (Admin + Storefront API) ────────────────────────────
+    shopify_enabled: bool = Field(
+        default=False,
+        description="Enable Shopify store management tools.",
+    )
+    shopify_store_domain: str = Field(
+        default="",
+        description="Shopify store domain (e.g. 'my-store.myshopify.com').",
+    )
+    shopify_admin_api_token: str = Field(
+        default="",
+        description="Shopify Admin API access token (shpat_...).",
+    )
+    shopify_storefront_api_token: str = Field(
+        default="",
+        description="Shopify Storefront API access token.",
+    )
+    shopify_api_version: str = Field(
+        default="2026-01",
+        description="Shopify API version (YYYY-MM format).",
     )
 
     # ── Server ──────────────────────────────────────────────────────

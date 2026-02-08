@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Auton — a multi-agent orchestrator-worker system built with FastMCP (FastAPI + Model Context Protocol). An orchestrator decomposes user requests and delegates to specialist agents (Research, Browser, Communication, Workspace, Blockchain), each with filtered tool access and focused prompts. Slack is the primary UI via Bolt Socket Mode. Python 3.11+, fully async, default LLM: Grok 4.1 Fast via xAI SDK (gRPC).
+Auton — a multi-agent orchestrator-worker system built with FastMCP (FastAPI + Model Context Protocol). An orchestrator decomposes user requests and delegates to specialist agents (Research, Browser, Communication, Workspace, Blockchain, Shopify), each with filtered tool access and focused prompts. Slack is the primary UI via Bolt Socket Mode. Python 3.11+, fully async, default LLM: Grok 4.1 Fast via xAI SDK (gRPC).
 
 ## Commands
 
@@ -54,13 +54,14 @@ User (Slack @mention or DM)
         → Communication Agent (Slack + Gmail + Google Chat)
         → Workspace Agent (Google Workspace: Calendar, Drive, Docs, Sheets, etc.)
         → Blockchain Agent (Coinbase AgentKit: wallets, DeFi, swaps, NFTs)
+        → Shopify Agent (Admin + Storefront API: products, orders, inventory)
       → synthesize_results() — LLM combines specialist outputs
     → Reply in Slack thread
 ```
 
 ### Agent Roles (`agents/roles.py`)
 
-`AgentRole` enum: ORCHESTRATOR, RESEARCH, BROWSER, COMMUNICATION, WORKSPACE, BLOCKCHAIN. Each role has an `AgentConfig` with `allowed_tool_patterns`, `denied_tool_patterns`, `max_iterations_override`, and an optional `confirmation_callback` for Slack-native write-op approval.
+`AgentRole` enum: ORCHESTRATOR, RESEARCH, BROWSER, COMMUNICATION, WORKSPACE, BLOCKCHAIN, SHOPIFY. Each role has an `AgentConfig` with `allowed_tool_patterns`, `denied_tool_patterns`, `max_iterations_override`, and an optional `confirmation_callback` for Slack-native write-op approval.
 
 ### Agent Registry (`agents/registry.py`)
 
@@ -70,6 +71,7 @@ Maps each role to its tool access patterns using glob matching (`*` wildcards). 
 - Google Workspace tools: always `gw_` prefix
 - Slack tools: `slack_` prefix (internal)
 - Blockchain tools: `cb_` prefix (internal)
+- Shopify tools: `shop_` prefix (internal)
 - Webhook tools: `webhook_` prefix (internal)
 - Delegation tools: `delegate_to_*` (orchestrator-only)
 
@@ -107,7 +109,7 @@ Confirmation gate has 3 paths: MCP `ctx.elicit()`, Slack callback (thread-based 
 - RivalSearchMCP (10 tools: `web_search`, `social_search`, `news_aggregation`, `github_search`, `scientific_research`, `content_operations`, `map_website`, `document_analysis`, `research_topic`, `research_agent`)
 - Playwright MCP (always `pw_` prefixed)
 - Google Workspace MCP — `taylorwilsdon/google_workspace_mcp` (always `gw_` prefixed)
-- Internal tools: Slack (`slack_*`), Cron (`cron_*`), Memory (`memory_*`), Delegation (`delegate_to_*`), Blockchain (`cb_*`)
+- Internal tools: Slack (`slack_*`), Cron (`cron_*`), Memory (`memory_*`), Delegation (`delegate_to_*`), Blockchain (`cb_*`), Shopify (`shop_*`)
 
 Also exposes `list_prompts()` and `get_prompt()` for fetching RivalSearchMCP's guided research workflows.
 
@@ -157,6 +159,7 @@ Slack is the primary interface. `SlackBoltUI` uses Bolt async app with Socket Mo
 - Explicit `WRITE_TOOLS` frozenset for Slack/Cron/Memory ops
 - Pattern matching for `gw_*` tools (keywords in `_GW_DANGEROUS_KEYWORDS`: create, delete, update, send, share, move, modify, batch, transfer, remove, import, manage, clear, draft, run, set_publish)
 - ALL `cb_*` blockchain tools require confirmation unconditionally
+- `shop_*`: keyword matching (create, update, delete, adjust, set)
 
 ### LLM Client (`core/llm.py`)
 
@@ -165,6 +168,10 @@ Slack is the primary interface. `SlackBoltUI` uses Bolt async app with Socket Mo
 ### Blockchain (`blockchain/`)
 
 Wraps Coinbase AgentKit SDK as internal tools (`cb_*` prefix). Uses `CdpEvmWalletProvider` for Base/Ethereum. Action providers: wallet, ERC-20, ERC-721, CDP API, CDP EVM wallet, Pyth oracle, WETH. 19 tools covering wallets, transfers, swaps, DeFi (Aave), NFTs, streaming (Superfluid), identity (.base.eth), price feeds.
+
+### Shopify (`shopify/`)
+
+Wraps Shopify GraphQL Admin API and Storefront API as internal tools (`shop_*` prefix). Uses `httpx` with admin-generated access tokens. 25 tools covering: store info, products (CRUD), orders (list/get/update), customers (list/get/update), inventory (query/adjust), collections (list/create), discounts (list/create), fulfillment (list/create), metafields (query/set), pages, and Storefront API (product search, cart creation). API version: 2026-01. Rate limiting: tracks `throttleStatus`, auto-retries on 429.
 
 ### Other Subsystems
 
@@ -186,6 +193,7 @@ Pydantic Settings with 92 fields. Major groups:
 - **Slack**: bot token, app token, signing secret, enabled
 - **Webhooks**: `webhook_enabled`, `webhook_signing_secret`, `webhook_timeout`, `webhook_max_retries`, `webhook_retry_backoff`
 - **Blockchain**: `blockchain_enabled`, `blockchain_network`, `cdp_api_key_id`, `cdp_api_key_secret`, `cdp_wallet_secret`
+- **Shopify**: `shopify_enabled`, `shopify_store_domain`, `shopify_admin_api_token`, `shopify_storefront_api_token`, `shopify_api_version`
 - **Neon Postgres**: connection URL
 - **Redis**: host, port, DB numbers
 - **Agent behavior**: `max_iterations`, `max_tool_result_length`, `tool_timeout`, context window, compaction, cost/token guardrails

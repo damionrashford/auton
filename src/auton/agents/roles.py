@@ -25,6 +25,7 @@ class AgentRole(StrEnum):
     COMMUNICATION = "communication"
     WORKSPACE = "workspace"
     BLOCKCHAIN = "blockchain"
+    SHOPIFY = "shopify"
 
 
 class AgentConfig(BaseModel):

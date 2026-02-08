@@ -231,6 +231,40 @@ class AgentRegistry:
             require_confirmation_override=True,
         )
 
+        # ── SHOPIFY ────────────────────────────────────────────────
+        # Shopify Admin + Storefront API: products, orders, customers,
+        # inventory, discounts, fulfillment, collections, metafields
+        self._configs[AgentRole.SHOPIFY] = AgentConfig(
+            role=AgentRole.SHOPIFY,
+            allowed_tool_patterns=[
+                "shop_*",
+                "memory_recall",
+                "memory_store",
+            ],
+            denied_tool_patterns=[
+                "pw_*",
+                "browser_*",
+                "web_search",
+                "social_search",
+                "news_aggregation",
+                "github_search",
+                "scientific_research",
+                "content_operations",
+                "map_website",
+                "document_analysis",
+                "research_topic",
+                "research_agent",
+                "slack_*",
+                "gw_*",
+                "cron_*",
+                "cb_*",
+                "delegate_to_*",
+                "webhook_*",
+            ],
+            max_iterations_override=s.multi_agent_shopify_max_iterations,
+            require_confirmation_override=True,
+        )
+
     # ── public API ──────────────────────────────────────────────────
 
     def get_config(self, role: AgentRole) -> AgentConfig:

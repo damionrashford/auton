@@ -132,6 +132,29 @@ DELEGATION_TOOLS: list[dict[str, Any]] = [
             "required": ["instruction"],
         },
     },
+    {
+        "name": "delegate_to_shopify",
+        "description": (
+            "Delegate a Shopify e-commerce task to the Shopify Agent. "
+            "It can manage products, orders, customers, inventory, discounts, "
+            "fulfillments, collections, metafields, and storefront operations."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "instruction": {
+                    "type": "string",
+                    "description": "Clear instruction for the Shopify task.",
+                },
+                "context": {
+                    "type": "object",
+                    "description": "Additional context (product IDs, order numbers, filters).",
+                    "default": {},
+                },
+            },
+            "required": ["instruction"],
+        },
+    },
 ]
 
 
@@ -142,17 +165,20 @@ _ROLE_MAP: dict[str, AgentRole] = {
     "delegate_to_communication": AgentRole.COMMUNICATION,
     "delegate_to_workspace": AgentRole.WORKSPACE,
     "delegate_to_blockchain": AgentRole.BLOCKCHAIN,
+    "delegate_to_shopify": AgentRole.SHOPIFY,
 }
 
 
 def make_delegation_handler(
     orchestrator: OrchestratorAgent,
-    parent_conversation_id_ref: list[str],
 ) -> Any:
     """Build a handler closure that routes delegation tool calls.
 
-    ``parent_conversation_id_ref`` is a mutable single-element list so
-    the conversation ID can be updated at call time.
+    The parent conversation ID is not needed here because the
+    orchestrator's ``decompose_task()`` already sets it on each
+    ``DelegationTask``.  When delegation tools are called directly
+    (outside decomposition), an empty CID is used and the child
+    agent creates its own conversation.
     """
 
     async def _handle(name: str, args: dict[str, Any]) -> str:
@@ -165,11 +191,7 @@ def make_delegation_handler(
             target_role=target_role,
             instruction=args.get("instruction", ""),
             context=args.get("context", {}),
-            parent_conversation_id=(
-                parent_conversation_id_ref[0]
-                if parent_conversation_id_ref
-                else ""
-            ),
+            parent_conversation_id="",
             max_iterations=args.get("max_iterations", 10),
         )
 

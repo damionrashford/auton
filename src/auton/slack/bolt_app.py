@@ -48,11 +48,13 @@ class SlackBoltUI:
         app_token: str,
         orchestrator: OrchestratorAgent,
         memory_store: Any | None = None,
+        agent_queue: Any | None = None,
     ) -> None:
         self._bot_token = bot_token
         self._app_token = app_token
         self._orchestrator = orchestrator
         self._memory_store = memory_store
+        self._agent_queue = agent_queue
         self._app: Any = None
         self._handler: Any = None
         self._task: asyncio.Task[None] | None = None
@@ -60,6 +62,7 @@ class SlackBoltUI:
         self._bot_user_id = ""
         # Rate limiting: user_id -> list of timestamps
         self._rate_tracker: dict[str, list[float]] = defaultdict(list)
+        self._rate_lock = asyncio.Lock()
 
     @property
     def is_running(self) -> bool:
@@ -226,7 +229,7 @@ class SlackBoltUI:
     ) -> None:
         """Run the orchestrator and reply in the Slack thread."""
         # Rate limiting
-        if self._is_rate_limited(user):
+        if await self._is_rate_limited(user):
             await say(
                 text=":warning: You're sending messages too fast. "
                 "Please wait a minute.",
@@ -249,13 +252,23 @@ class SlackBoltUI:
                 channel, thread_ts
             )
 
-            resp = await self._orchestrator.run(
-                user_message=text,
-                conversation_id=conversation_id,
-                ctx=None,
-                memory_store=self._memory_store,
-                confirmation_callback=confirm_cb,
-            )
+            # Use bounded queue if available, otherwise direct call.
+            if self._agent_queue is not None:
+                resp = await self._agent_queue.enqueue(
+                    user_message=text,
+                    conversation_id=conversation_id,
+                    memory_store=self._memory_store,
+                    confirmation_callback=confirm_cb,
+                    source="slack",
+                )
+            else:
+                resp = await self._orchestrator.run(
+                    user_message=text,
+                    conversation_id=conversation_id,
+                    ctx=None,
+                    memory_store=self._memory_store,
+                    confirmation_callback=confirm_cb,
+                )
 
             reply = resp.reply
             if not reply:
@@ -388,20 +401,25 @@ class SlackBoltUI:
 
     # ── Rate limiting ─────────────────────────────────────────────
 
-    def _is_rate_limited(self, user: str) -> bool:
-        """Check if *user* has exceeded the per-minute message limit."""
-        now = time.monotonic()
-        window_start = now - _RATE_LIMIT_WINDOW
+    async def _is_rate_limited(self, user: str) -> bool:
+        """Check if *user* has exceeded the per-minute message limit.
 
-        # Prune old entries
-        self._rate_tracker[user] = [
-            t for t in self._rate_tracker[user] if t > window_start
-        ]
-        if len(self._rate_tracker[user]) >= _RATE_LIMIT_MAX:
-            return True
+        Uses an asyncio lock to prevent race conditions from concurrent
+        Slack events modifying the rate tracker simultaneously.
+        """
+        async with self._rate_lock:
+            now = time.monotonic()
+            window_start = now - _RATE_LIMIT_WINDOW
 
-        self._rate_tracker[user].append(now)
-        return False
+            # Prune old entries
+            self._rate_tracker[user] = [
+                t for t in self._rate_tracker[user] if t > window_start
+            ]
+            if len(self._rate_tracker[user]) >= _RATE_LIMIT_MAX:
+                return True
+
+            self._rate_tracker[user].append(now)
+            return False
 
     # ── Helpers ───────────────────────────────────────────────────
 

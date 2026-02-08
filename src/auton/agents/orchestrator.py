@@ -77,8 +77,6 @@ class OrchestratorAgent:
         """
         from auton.core.agent import run_agent
 
-        self._confirmation_callback = confirmation_callback
-
         cid = conversation_id or uuid.uuid4().hex[:12]
 
         # Phase 1 — decompose
@@ -110,8 +108,10 @@ class OrchestratorAgent:
             except Exception:
                 pass
 
-        # Phase 2 — execute
-        results = await self.execute_tasks(tasks)
+        # Phase 2 — execute (pass callback per-request, not on instance)
+        results = await self.execute_tasks(
+            tasks, confirmation_callback=confirmation_callback
+        )
 
         # Phase 3 — synthesise
         synthesized = await self.synthesize_results(user_message, results, cid)
@@ -185,6 +185,11 @@ Contacts, Apps Script. Full CRUD on all services.
 "blockchain" — Coinbase AgentKit: wallet balance/transfers, token swaps, \
 DeFi (Aave supply/borrow/repay), NFT mint/transfer, Superfluid streaming, \
 .base.eth names, Pyth price feeds. ALL actions require user confirmation.
+
+"shopify" — Shopify Admin + Storefront API: products (list/get/create/update), \
+orders (list/get/update), customers (list/get/update), inventory (query/adjust), \
+collections, discounts, fulfillments, metafields, pages, storefront cart. \
+Write operations require user confirmation.
 
 Output a JSON array of tasks:
 [
@@ -263,6 +268,8 @@ Rules:
     async def execute_tasks(
         self,
         tasks: list[DelegationTask],
+        *,
+        confirmation_callback: Any | None = None,
     ) -> list[DelegationResult]:
         """Run independent tasks in parallel, dependent ones sequentially."""
         parallel_tasks = [t for t in tasks if t.parallel]
@@ -272,7 +279,12 @@ Rules:
 
         # Run parallel tasks first
         if parallel_tasks:
-            coros = [self.execute_single_task(t) for t in parallel_tasks]
+            coros = [
+                self.execute_single_task(
+                    t, confirmation_callback=confirmation_callback
+                )
+                for t in parallel_tasks
+            ]
             parallel_results = await asyncio.gather(*coros, return_exceptions=True)
             for i, r in enumerate(parallel_results):
                 if isinstance(r, BaseException):
@@ -293,7 +305,9 @@ Rules:
 
         # Then sequential tasks
         for task in sequential_tasks:
-            result = await self.execute_single_task(task)
+            result = await self.execute_single_task(
+                task, confirmation_callback=confirmation_callback
+            )
             results.append(result)
 
         return results
@@ -301,6 +315,8 @@ Rules:
     async def execute_single_task(
         self,
         task: DelegationTask,
+        *,
+        confirmation_callback: Any | None = None,
     ) -> DelegationResult:
         """Spawn a specialist agent for one delegation task."""
         from auton.core.agent import run_agent
@@ -308,7 +324,7 @@ Rules:
         config = self._registry.get_config(task.target_role)
         config.parent_conversation_id = task.parent_conversation_id
         config.delegation_context = task.context
-        config.confirmation_callback = self._confirmation_callback
+        config.confirmation_callback = confirmation_callback
 
         if task.max_iterations:
             config.max_iterations_override = task.max_iterations
