@@ -49,6 +49,7 @@ Defined in `agents/registry.py`. Tool prefix conventions:
 | `gw_` | Google Workspace MCP | `gw_send_gmail_message`, `gw_create_event` |
 | `slack_` | Internal Slack | `slack_send_message`, `slack_upload_file` |
 | `cb_` | Internal Blockchain | `cb_get_wallet_details`, `cb_trade` |
+| `webhook_` | Internal Webhooks | `webhook_send`, `webhook_get`, `webhook_create_subscription` |
 | `cron_` | Internal Scheduler | `cron_create_job`, `cron_delete_job` |
 | `memory_` | Internal Memory | `memory_store`, `memory_recall`, `memory_forget` |
 | `delegate_to_*` | Internal Delegation | `delegate_to_research`, `delegate_to_browser` |
@@ -61,7 +62,7 @@ Defined in `agents/registry.py`. Tool prefix conventions:
 
 **BROWSER** — `pw_*`, `browser_*`, `memory_store`. Denied: all RivalSearchMCP, `slack_*`, `gw_*`, `cron_*`, `delegate_to_*`
 
-**COMMUNICATION** — `slack_*`, 6 Gmail tools, 4 Google Chat tools, `memory_store`, `memory_recall`. Denied: `pw_*`, `browser_*`, all RivalSearchMCP, `cron_*`, `delegate_to_*`
+**COMMUNICATION** — `slack_*`, `webhook_*`, 6 Gmail tools, 4 Google Chat tools, `memory_store`, `memory_recall`. Denied: `pw_*`, `browser_*`, all RivalSearchMCP, `cron_*`, `delegate_to_*`
 
 **WORKSPACE** — `gw_*`, `memory_store`, `memory_recall`. Denied: `pw_*`, `browser_*`, all RivalSearchMCP, `slack_*`, `cron_*`, `delegate_to_*`
 

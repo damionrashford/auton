@@ -236,6 +236,28 @@ class Settings(BaseSettings):
         description="Whether to initialize Slack Bolt on startup.",
     )
 
+    # ── Webhooks (outbound + inbound receiver) ───────────────────
+    webhook_enabled: bool = Field(
+        default=True,
+        description="Whether to enable webhook send/receive tools.",
+    )
+    webhook_signing_secret: str = Field(
+        default="",
+        description="Default HMAC signing secret for webhook verification.",
+    )
+    webhook_timeout: float = Field(
+        default=30.0,
+        description="Timeout in seconds for outbound webhook requests.",
+    )
+    webhook_max_retries: int = Field(
+        default=3,
+        description="Maximum retry attempts for failed webhook deliveries.",
+    )
+    webhook_retry_backoff: float = Field(
+        default=2.0,
+        description="Exponential backoff base for webhook retries.",
+    )
+
     # ── Cron Scheduler (optional) ────────────────────────────────
     cron_enabled: bool = Field(
         default=True,

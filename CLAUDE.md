@@ -70,6 +70,7 @@ Maps each role to its tool access patterns using glob matching (`*` wildcards). 
 - Google Workspace tools: always `gw_` prefix
 - Slack tools: `slack_` prefix (internal)
 - Blockchain tools: `cb_` prefix (internal)
+- Webhook tools: `webhook_` prefix (internal)
 - Delegation tools: `delegate_to_*` (orchestrator-only)
 
 ### Orchestrator (`agents/orchestrator.py`)
@@ -172,16 +173,18 @@ Wraps Coinbase AgentKit SDK as internal tools (`cb_*` prefix). Uses `CdpEvmWalle
 - `slack/tools.py` — tool schemas + handler with actionable error messages for common Slack API errors
 - `browser/stealth.js` — anti-bot detection script injected by Playwright
 - `telemetry/` — OpenTelemetry span helpers for LLM and tool calls
+- `webhooks/` — `WebhookService` for outbound HTTP requests (POST/PUT/PATCH/GET) with retry logic, inbound webhook receivers with HMAC-SHA256 signature verification, and subscription management (6 tools)
 
 ## Configuration (`config.py`)
 
-Pydantic Settings with 87 fields. Major groups:
+Pydantic Settings with 92 fields. Major groups:
 
 - **xAI LLM**: model (`grok-4.1-fast`), temperature, max_tokens, reasoning_effort, embedding_model
 - **Multi-Agent**: `multi_agent_*_max_iterations` per role, `multi_agent_max_delegation_depth`, orchestrator timeout
 - **Playwright MCP**: port, headless, browser, proxy, stealth, capabilities
 - **Google Workspace MCP**: URL, enabled flag
 - **Slack**: bot token, app token, signing secret, enabled
+- **Webhooks**: `webhook_enabled`, `webhook_signing_secret`, `webhook_timeout`, `webhook_max_retries`, `webhook_retry_backoff`
 - **Blockchain**: `blockchain_enabled`, `blockchain_network`, `cdp_api_key_id`, `cdp_api_key_secret`, `cdp_wallet_secret`
 - **Neon Postgres**: connection URL
 - **Redis**: host, port, DB numbers

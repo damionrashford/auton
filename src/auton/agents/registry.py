@@ -133,6 +133,7 @@ class AgentRegistry:
             role=AgentRole.COMMUNICATION,
             allowed_tool_patterns=[
                 "slack_*",
+                "webhook_*",
                 # Gmail tools (gw_ prefix from workspace-mcp)
                 "gw_send_gmail_message",
                 "gw_draft_gmail_message",

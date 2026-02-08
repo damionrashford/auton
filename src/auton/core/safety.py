@@ -24,6 +24,10 @@ WRITE_TOOLS = frozenset(
         "cron_delete_job",
         # Memory operations (forget is destructive)
         "memory_forget",
+        # Webhook operations
+        "webhook_send",
+        "webhook_create_subscription",
+        "webhook_delete_subscription",
         # Google Workspace write operations (pattern-matched)
         "gw_send_email",
         "gw_create_event",

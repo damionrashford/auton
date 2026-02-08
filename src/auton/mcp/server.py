@@ -268,7 +268,45 @@ async def agent_lifespan(server: FastMCP):
     else:
         logger.info("Blockchain: skipped (not configured).")
 
-    # 8. Inject dependencies into cron scheduler for agent loop execution.
+    # 8. Webhook service (outbound + inbound subscription management).
+    if settings.webhook_enabled:
+        try:
+            from auton.webhooks import (
+                WEBHOOK_TOOLS,
+                WebhookService,
+                handle_webhook_tool,
+            )
+
+            webhook_service = WebhookService(
+                timeout=settings.webhook_timeout,
+                max_retries=settings.webhook_max_retries,
+                retry_backoff=settings.webhook_retry_backoff,
+                db_pool=pool,
+            )
+            await webhook_service.start()
+
+            if webhook_service.is_connected:
+                bridge.register_internal_tools(
+                    tools=WEBHOOK_TOOLS,
+                    handler=lambda name, args: handle_webhook_tool(
+                        webhook_service, name, args
+                    ),
+                    source="webhook",
+                )
+                logger.info(
+                    "Webhooks: %d tools registered.",
+                    len(WEBHOOK_TOOLS),
+                )
+            else:
+                logger.warning("Webhooks: service init failed.")
+        except Exception:
+            logger.warning(
+                "Webhook initialization failed.", exc_info=True
+            )
+    else:
+        logger.info("Webhooks: skipped (not enabled).")
+
+    # 9. Inject dependencies into cron scheduler for agent loop execution.
     if cron_scheduler is not None:
         # Pass Slack client for cron result notifications
         slack_web = (

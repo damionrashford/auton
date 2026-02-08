@@ -185,3 +185,64 @@ CREATE INDEX IF NOT EXISTS idx_delegations_status
 
 CREATE INDEX IF NOT EXISTS idx_delegations_created
     ON agent_delegations(created_at DESC);
+
+
+-- ═══════════════════════════════════════════════════════════════
+--  Webhook Support
+-- ═══════════════════════════════════════════════════════════════
+
+CREATE TABLE IF NOT EXISTS webhook_subscriptions (
+    id              TEXT PRIMARY KEY,
+    webhook_url     TEXT NOT NULL,
+    description     TEXT NOT NULL DEFAULT '',
+    signing_secret  TEXT NOT NULL,
+    agent_role      TEXT NOT NULL DEFAULT 'research',
+    enabled         BOOLEAN NOT NULL DEFAULT TRUE,
+    metadata        JSONB NOT NULL DEFAULT '{}',
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_webhook_subs_enabled
+    ON webhook_subscriptions(enabled);
+
+CREATE TABLE IF NOT EXISTS webhook_deliveries (
+    id              SERIAL PRIMARY KEY,
+    conversation_id TEXT REFERENCES conversations(id) ON DELETE SET NULL,
+    url             TEXT NOT NULL,
+    method          TEXT NOT NULL DEFAULT 'POST',
+    payload         JSONB NOT NULL DEFAULT '{}',
+    headers         JSONB NOT NULL DEFAULT '{}',
+    status_code     INTEGER,
+    response_body   TEXT,
+    attempt         INTEGER NOT NULL DEFAULT 1,
+    status          TEXT NOT NULL DEFAULT 'pending',
+    error           TEXT,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    delivered_at    TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_webhook_del_status
+    ON webhook_deliveries(status);
+
+CREATE INDEX IF NOT EXISTS idx_webhook_del_created
+    ON webhook_deliveries(created_at DESC);
+
+CREATE TABLE IF NOT EXISTS webhook_events (
+    id                      SERIAL PRIMARY KEY,
+    webhook_id              TEXT NOT NULL REFERENCES webhook_subscriptions(id) ON DELETE CASCADE,
+    payload                 JSONB NOT NULL DEFAULT '{}',
+    headers                 JSONB NOT NULL DEFAULT '{}',
+    signature_valid         BOOLEAN NOT NULL DEFAULT FALSE,
+    agent_conversation_id   TEXT REFERENCES conversations(id) ON DELETE SET NULL,
+    processed               BOOLEAN NOT NULL DEFAULT FALSE,
+    error                   TEXT,
+    received_at             TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    processed_at            TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_webhook_evt_webhook
+    ON webhook_events(webhook_id);
+
+CREATE INDEX IF NOT EXISTS idx_webhook_evt_processed
+    ON webhook_events(processed);

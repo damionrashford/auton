@@ -38,7 +38,7 @@ Each specialist only sees its own tools. The Research Agent cannot send Slack me
 | **Orchestrator** | `delegate_to_*`, `memory_recall` | Task decomposition, delegation, result synthesis |
 | **Research** | 10 search tools + Playwright read-only | Web, social, news, GitHub, academic papers, OCR, site mapping |
 | **Browser** | Full Playwright suite | Click, type, fill forms, scroll, screenshots, PDF generation |
-| **Communication** | Slack + Gmail + Google Chat | Messages, emails, threads, channels, file uploads |
+| **Communication** | Slack + Gmail + Google Chat + Webhooks | Messages, emails, HTTP webhooks, threads, channels |
 | **Workspace** | Google Workspace | Calendar, Drive, Docs, Sheets, Slides, Forms, Tasks |
 | **Blockchain** | 19 Coinbase AgentKit tools | Wallets, swaps, DeFi (Aave V3), NFTs, streaming, .base.eth |
 
@@ -85,6 +85,7 @@ Reply in Slack thread
 | Source | Tools |
 |:-------|:------|
 | Slack Bolt | 8 tools (`slack_*`) |
+| Webhooks | 6 tools (`webhook_*`) |
 | Coinbase AgentKit | 19 tools (`cb_*`) |
 | Cron Scheduler | 3 tools (`cron_*`) |
 | Memory (pgvector) | 3 tools (`memory_*`) |

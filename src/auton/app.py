@@ -19,11 +19,14 @@ Run with:
 
 from __future__ import annotations
 
+import asyncio
+import json
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import Any
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastmcp.utilities.lifespan import combine_lifespans
 
@@ -115,3 +118,150 @@ async def api_status() -> JSONResponse:
         )
     except RuntimeError:
         return JSONResponse({"status": "starting"}, status_code=503)
+
+
+# ── Inbound webhook receiver ─────────────────────────────────────────
+
+
+@app.post("/webhooks/{webhook_id}")
+async def webhook_receiver(webhook_id: str, request: Request) -> JSONResponse:
+    """Receive inbound webhooks with HMAC-SHA256 signature verification.
+
+    External services POST to ``/webhooks/{webhook_id}`` with header
+    ``X-Webhook-Signature: sha256=<hex_digest>`` for authentication.
+    Returns 202 and processes the event asynchronously via the agent loop.
+    """
+    from auton.mcp.dependencies import get_db_pool
+    from auton.webhooks.client import WebhookService
+
+    try:
+        pool = get_db_pool()
+        if not pool:
+            return JSONResponse({"error": "Database unavailable"}, status_code=503)
+
+        # 1. Fetch subscription
+        async with pool.acquire() as conn:
+            sub = await conn.fetchrow(
+                "SELECT id, webhook_url, signing_secret, agent_role, enabled "
+                "FROM webhook_subscriptions WHERE id = $1",
+                webhook_id,
+            )
+
+        if not sub:
+            return JSONResponse({"error": "Not found"}, status_code=404)
+        if not sub["enabled"]:
+            return JSONResponse({"error": "Disabled"}, status_code=403)
+
+        # 2. Verify signature
+        body = await request.body()
+        signature = request.headers.get("X-Webhook-Signature", "")
+        sig_valid = WebhookService.verify_signature(body, signature, sub["signing_secret"])
+
+        try:
+            payload = json.loads(body)
+        except json.JSONDecodeError:
+            payload = {"raw": body.decode("utf-8", errors="replace")}
+
+        # 3. Log event
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(
+                "INSERT INTO webhook_events "
+                "(webhook_id, payload, headers, signature_valid, processed) "
+                "VALUES ($1, $2, $3, $4, FALSE) RETURNING id",
+                webhook_id,
+                json.dumps(payload),
+                json.dumps(dict(request.headers)),
+                sig_valid,
+            )
+            event_id = row["id"] if row else 0
+
+        if not sig_valid:
+            logger.warning("Webhook signature invalid: %s event=%d", webhook_id, event_id)
+            return JSONResponse({"error": "Invalid signature"}, status_code=401)
+
+        # 4. Process asynchronously
+        asyncio.create_task(
+            _process_webhook_event(event_id, webhook_id, payload, sub["agent_role"])
+        )
+
+        return JSONResponse(
+            {"status": "accepted", "event_id": event_id},
+            status_code=202,
+        )
+    except RuntimeError:
+        return JSONResponse({"error": "Not ready"}, status_code=503)
+    except Exception:
+        logger.exception("Webhook receiver error")
+        return JSONResponse({"error": "Internal error"}, status_code=500)
+
+
+async def _process_webhook_event(
+    event_id: int,
+    webhook_id: str,
+    payload: dict[str, Any],
+    agent_role: str,
+) -> None:
+    """Process an inbound webhook event via the agent loop (background task).
+
+    Follows the same re-entry pattern as ``scheduler/service.py:_execute_job``.
+    """
+    from auton.agents.roles import AgentConfig, AgentRole
+    from auton.core.agent import run_agent
+    from auton.mcp.dependencies import (
+        get_bridge,
+        get_db_pool,
+        get_llm,
+        get_settings_dep,
+        get_store,
+    )
+
+    conv_id = ""
+    error_text = ""
+    success = False
+
+    try:
+        bridge = get_bridge()
+        llm = get_llm()
+        store = get_store()
+        settings = get_settings_dep()
+
+        user_message = (
+            f"Inbound webhook event received (webhook_id={webhook_id}):\n\n"
+            + json.dumps(payload, indent=2)
+        )
+
+        config = AgentConfig(role=AgentRole(agent_role))
+        resp = await run_agent(
+            user_message=user_message,
+            bridge=bridge,
+            llm=llm,
+            store=store,
+            settings=settings,
+            agent_config=config,
+            conversation_id=f"webhook_{webhook_id}_{event_id}",
+            ctx=None,
+            headless=True,
+        )
+        success = True
+        conv_id = resp.conversation_id
+        logger.info("Webhook event processed: event=%d conv=%s", event_id, conv_id)
+    except Exception as exc:
+        error_text = str(exc)[:500]
+        logger.exception("Webhook event processing failed: event=%d", event_id)
+
+    # Update event status
+    try:
+        pool = get_db_pool()
+        if pool:
+            async with pool.acquire() as conn:
+                await conn.execute(
+                    "UPDATE webhook_events "
+                    "SET processed=$1, agent_conversation_id=$2, error=$3, "
+                    "processed_at=NOW() WHERE id=$4",
+                    success,
+                    conv_id if success else None,
+                    error_text if not success else None,
+                    event_id,
+                )
+    except Exception:
+        logger.exception("Failed to update webhook event status")
