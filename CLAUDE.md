@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-FastMCP AI Agent — a multi-agent orchestrator-worker system built with FastMCP (FastAPI + Model Context Protocol). An orchestrator decomposes user requests and delegates to specialist agents (Research, Browser, Communication, Workspace, Blockchain), each with filtered tool access and focused prompts. Slack is the primary UI via Bolt Socket Mode. Python 3.11+, fully async, default LLM: Grok 4.1 Fast via xAI SDK (gRPC).
+Auton — a multi-agent orchestrator-worker system built with FastMCP (FastAPI + Model Context Protocol). An orchestrator decomposes user requests and delegates to specialist agents (Research, Browser, Communication, Workspace, Blockchain), each with filtered tool access and focused prompts. Slack is the primary UI via Bolt Socket Mode. Python 3.11+, fully async, default LLM: Grok 4.1 Fast via xAI SDK (gRPC).
 
 ## Commands
 
@@ -16,7 +16,7 @@ uv sync
 uv sync --extra dev
 
 # Run dev server with hot reload
-uv run uvicorn fast_mcp_agent.app:app --host 0.0.0.0 --port 8000 --reload
+uv run uvicorn auton.app:app --host 0.0.0.0 --port 8000 --reload
 
 # Run as standalone FastMCP server
 uv run fastmcp run
@@ -204,7 +204,7 @@ Module-level singletons set during MCP server lifespan. 8 factories in `mcp/depe
 
 Follow this recipe (same pattern used for Slack, Blockchain):
 
-1. Create `src/fast_mcp_agent/<name>/` package with `client.py` (SDK wrapper) and `tools.py` (tool schemas + handler)
+1. Create `src/auton/<name>/` package with `client.py` (SDK wrapper) and `tools.py` (tool schemas + handler)
 2. Add `AgentRole.<NAME>` to `agents/roles.py`
 3. Add registry config in `agents/registry.py` with `allowed_tool_patterns` and `denied_tool_patterns`
 4. Add `<NAME>_AGENT_PROMPT` to `agents/prompts.py` and register in `get_system_prompt()`

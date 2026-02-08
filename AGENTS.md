@@ -172,7 +172,7 @@ Configured per role in `config.py`:
 
 Follow this recipe (same pattern used for Slack, Blockchain):
 
-1. Create `src/fast_mcp_agent/<name>/` package with `client.py` (SDK wrapper) and `tools.py` (tool schemas + handler)
+1. Create `src/auton/<name>/` package with `client.py` (SDK wrapper) and `tools.py` (tool schemas + handler)
 2. Add `AgentRole.<NAME>` to `agents/roles.py`
 3. Add registry config in `agents/registry.py` with `allowed_tool_patterns` and `denied_tool_patterns`
 4. Add `<NAME>_AGENT_PROMPT` to `agents/prompts.py` and register in `get_system_prompt()`

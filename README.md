@@ -1,4 +1,4 @@
-# FastMCP AI Agent
+# Auton
 
 A multi-agent orchestrator-worker system built on the [Model Context Protocol](https://modelcontextprotocol.io/) (MCP). An orchestrator decomposes user requests and delegates to specialist agents -- each with filtered tool access, focused prompts, and isolated conversation state. Talk to it from Slack.
 
@@ -117,8 +117,8 @@ Google Workspace write operations are pattern-matched against dangerous keywords
 ### Install
 
 ```bash
-git clone https://github.com/your-username/fast-mcp-agent.git
-cd fast-mcp-agent
+git clone https://github.com/your-username/auton.git
+cd auton
 uv sync
 cp .env.example .env
 # Edit .env with your API keys
@@ -150,7 +150,7 @@ CDP_WALLET_SECRET=...
 ### Run
 
 ```bash
-uv run uvicorn fast_mcp_agent.app:app --host 0.0.0.0 --port 8000
+uv run uvicorn auton.app:app --host 0.0.0.0 --port 8000
 ```
 
 The server starts the MCP endpoint at `/mcp`, connects to all configured MCP servers, registers internal tools, initializes the orchestrator, and starts the Slack Bolt listener. Then @mention the bot or DM it in Slack.
@@ -206,7 +206,7 @@ Adding a new specialist agent follows a repeatable pattern. See [CLAUDE.md](CLAU
 
 The short version:
 
-1. Create `src/fast_mcp_agent/<name>/` with `client.py` and `tools.py`
+1. Create `src/auton/<name>/` with `client.py` and `tools.py`
 2. Add `AgentRole.<NAME>` and registry config
 3. Add system prompt and `delegate_to_<name>` tool
 4. Add safety rules and config fields
@@ -237,7 +237,7 @@ The short version:
 ## Project Structure
 
 ```
-src/fast_mcp_agent/
+src/auton/
   app.py                    FastAPI + FastMCP ASGI composition
   config.py                 Pydantic Settings (120+ fields)
   models.py                 Shared data models

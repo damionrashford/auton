@@ -267,6 +267,74 @@ wheels = [
 ]
 
 [[package]]
+name = "auton"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "apscheduler" },
+    { name = "asyncpg" },
+    { name = "coinbase-agentkit" },
+    { name = "cron-descriptor" },
+    { name = "fastapi" },
+    { name = "fastmcp", extra = ["tasks"] },
+    { name = "httpx" },
+    { name = "neon-api" },
+    { name = "py-key-value-aio", extra = ["redis"] },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
+    { name = "python-dotenv" },
+    { name = "slack-bolt" },
+    { name = "slack-sdk" },
+    { name = "structlog" },
+    { name = "tiktoken" },
+    { name = "uvicorn", extra = ["standard"] },
+    { name = "xai-sdk" },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "mypy" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "ruff" },
+]
+otel = [
+    { name = "opentelemetry-api" },
+    { name = "opentelemetry-exporter-otlp" },
+    { name = "opentelemetry-sdk" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "apscheduler", specifier = ">=3.10.0" },
+    { name = "asyncpg", specifier = ">=0.29.0" },
+    { name = "coinbase-agentkit", specifier = ">=0.1.0" },
+    { name = "cron-descriptor", specifier = ">=1.4.0" },
+    { name = "fastapi", specifier = ">=0.115.0" },
+    { name = "fastmcp", extras = ["tasks"], specifier = ">=3.0.0b1" },
+    { name = "httpx", specifier = ">=0.27.0" },
+    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.13.0" },
+    { name = "neon-api", specifier = ">=0.3.0" },
+    { name = "opentelemetry-api", marker = "extra == 'otel'", specifier = ">=1.27.0" },
+    { name = "opentelemetry-exporter-otlp", marker = "extra == 'otel'", specifier = ">=1.27.0" },
+    { name = "opentelemetry-sdk", marker = "extra == 'otel'", specifier = ">=1.27.0" },
+    { name = "py-key-value-aio", extras = ["redis"] },
+    { name = "pydantic", specifier = ">=2.10.0" },
+    { name = "pydantic-settings", specifier = ">=2.7.0" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.3.0" },
+    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.24.0" },
+    { name = "python-dotenv", specifier = ">=1.0.0" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.8.0" },
+    { name = "slack-bolt", specifier = ">=1.21.0" },
+    { name = "slack-sdk", specifier = ">=3.33.0" },
+    { name = "structlog", specifier = ">=24.4.0" },
+    { name = "tiktoken", specifier = ">=0.8.0" },
+    { name = "uvicorn", extras = ["standard"], specifier = ">=0.32.0" },
+    { name = "xai-sdk", specifier = ">=1.0.0" },
+]
+provides-extras = ["dev", "otel"]
+
+[[package]]
 name = "backports-tarfile"
 version = "1.2.0"
 source = { registry = "https://pkgs.shopify.io/basic/data/python/simple/" }
@@ -1288,74 +1356,6 @@ wheels = [
 lua = [
     { name = "lupa" },
 ]
-
-[[package]]
-name = "fast-mcp-agent"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "apscheduler" },
-    { name = "asyncpg" },
-    { name = "coinbase-agentkit" },
-    { name = "cron-descriptor" },
-    { name = "fastapi" },
-    { name = "fastmcp", extra = ["tasks"] },
-    { name = "httpx" },
-    { name = "neon-api" },
-    { name = "py-key-value-aio", extra = ["redis"] },
-    { name = "pydantic" },
-    { name = "pydantic-settings" },
-    { name = "python-dotenv" },
-    { name = "slack-bolt" },
-    { name = "slack-sdk" },
-    { name = "structlog" },
-    { name = "tiktoken" },
-    { name = "uvicorn", extra = ["standard"] },
-    { name = "xai-sdk" },
-]
-
-[package.optional-dependencies]
-dev = [
-    { name = "mypy" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "ruff" },
-]
-otel = [
-    { name = "opentelemetry-api" },
-    { name = "opentelemetry-exporter-otlp" },
-    { name = "opentelemetry-sdk" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "apscheduler", specifier = ">=3.10.0" },
-    { name = "asyncpg", specifier = ">=0.29.0" },
-    { name = "coinbase-agentkit", specifier = ">=0.1.0" },
-    { name = "cron-descriptor", specifier = ">=1.4.0" },
-    { name = "fastapi", specifier = ">=0.115.0" },
-    { name = "fastmcp", extras = ["tasks"], specifier = ">=3.0.0b1" },
-    { name = "httpx", specifier = ">=0.27.0" },
-    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.13.0" },
-    { name = "neon-api", specifier = ">=0.3.0" },
-    { name = "opentelemetry-api", marker = "extra == 'otel'", specifier = ">=1.27.0" },
-    { name = "opentelemetry-exporter-otlp", marker = "extra == 'otel'", specifier = ">=1.27.0" },
-    { name = "opentelemetry-sdk", marker = "extra == 'otel'", specifier = ">=1.27.0" },
-    { name = "py-key-value-aio", extras = ["redis"] },
-    { name = "pydantic", specifier = ">=2.10.0" },
-    { name = "pydantic-settings", specifier = ">=2.7.0" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.3.0" },
-    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.24.0" },
-    { name = "python-dotenv", specifier = ">=1.0.0" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.8.0" },
-    { name = "slack-bolt", specifier = ">=1.21.0" },
-    { name = "slack-sdk", specifier = ">=3.33.0" },
-    { name = "structlog", specifier = ">=24.4.0" },
-    { name = "tiktoken", specifier = ">=0.8.0" },
-    { name = "uvicorn", extras = ["standard"], specifier = ">=0.32.0" },
-    { name = "xai-sdk", specifier = ">=1.0.0" },
-]
-provides-extras = ["dev", "otel"]
 
 [[package]]
 name = "fastapi"

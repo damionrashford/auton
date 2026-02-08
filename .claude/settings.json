@@ -15,10 +15,6 @@
     "ANTHROPIC_DEFAULT_HAIKU_MODEL": "claude-sonnet-4-5-20250929",
     "ANTHROPIC_BETA": "context-1m-2025-08-07"
   },
-  "attribution": {
-    "commit": "Investigation completed with AI assistance\n\nCo-Authored-By: Shopify Production Investigation Agent <noreply@shopify.com>",
-    "pr": "🔍 Investigation and resolution powered by Shopify Production Investigation Agent"
-  },
   "permissions": {
     "allow": [
       "Bash",

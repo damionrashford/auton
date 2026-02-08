@@ -163,7 +163,7 @@ def main() -> None:
             "  2. Copy the Bot User OAuth Token (xoxb-...) "
             "to SLACK_BOT_TOKEN in .env"
         )
-    print("  3. Start the server: uv run uvicorn fast_mcp_agent.app:app")
+    print("  3. Start the server: uv run uvicorn auton.app:app")
     print("  4. @mention the bot in Slack or DM it")
 
 
