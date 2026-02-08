@@ -1,0 +1,40 @@
+{
+  "mcpServers": {
+    "opentelemetry-python-Docs": {
+      "url": "https://gitmcp.io/open-telemetry/opentelemetry-python"
+    },
+    "fastmcp-Docs": {
+      "url": "https://gofastmcp.com/mcp"
+    },
+    "playwright-mcp-Docs": {
+      "url": "https://gitmcp.io/microsoft/playwright-mcp"
+    },
+    "neon-Docs": {
+      "url": "https://gitmcp.io/neondatabase/neon"
+    },
+    "python-slack-sdk-Docs": {
+      "url": "https://gitmcp.io/slackapi/python-slack-sdk"
+    },
+    "redis-py-Docs": {
+      "url": "https://gitmcp.io/redis/redis-py"
+    },
+    "fastapi-Docs": {
+      "url": "https://gitmcp.io/fastapi/fastapi"
+    },
+    "pydantic-Docs": {
+      "url": "https://gitmcp.io/pydantic/pydantic"
+    },
+    "apscheduler-Docs": {
+      "url": "https://gitmcp.io/agronholm/apscheduler"
+    },
+    "httpx-Docs": {
+      "url": "https://gitmcp.io/encode/httpx"
+    },
+    "tiktoken-Docs": {
+      "url": "https://gitmcp.io/openai/tiktoken"
+    },
+    "structlog-Docs": {
+      "url": "https://gitmcp.io/hynek/structlog"
+    }
+  }
+}

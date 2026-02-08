@@ -1,0 +1,178 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "respectGitignore": true,
+  "cleanupPeriodDays": 30,
+  "env": {
+    "ENABLE_TOOL_SEARCH": "true",
+    "CLAUDE_CODE_ENABLE_TELEMETRY": "1",
+    "MCP_TIMEOUT": "120000",
+    "MCP_TOOL_TIMEOUT": "180000",
+    "MAX_MCP_OUTPUT_TOKENS": "100000",
+    "MAX_THINKING_TOKENS": "10000",
+    "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "64000",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-4-6[1m]",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-4-5-20250929",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "claude-sonnet-4-5-20250929",
+    "ANTHROPIC_BETA": "context-1m-2025-08-07"
+  },
+  "attribution": {
+    "commit": "Investigation completed with AI assistance\n\nCo-Authored-By: Shopify Production Investigation Agent <noreply@shopify.com>",
+    "pr": "🔍 Investigation and resolution powered by Shopify Production Investigation Agent"
+  },
+  "permissions": {
+    "allow": [
+      "Bash",
+      "Read",
+      "Edit",
+      "Write",
+      "Glob",
+      "Grep",
+      "Task",
+      "WebFetch",
+      "WebSearch",
+      "Skill",
+      "NotebookEdit",
+      "mcp__*"
+    ],
+    "deny": [
+      "Bash(rm -rf /)",
+      "Bash(sudo rm -rf *)"
+    ],
+    "ask": [
+      "Bash(git push *)",
+      "Bash(npm publish *)",
+      "Bash(docker push *)"
+    ],
+    "defaultMode": "bypassPermissions",
+    "additionalDirectories": []
+  },
+  "model": "claude-opus-4-6[1m]",
+  "enableAllProjectMcpServers": true,
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"[$(date '+%Y-%m-%d %H:%M:%S')] Investigation session started\" >> /tmp/investigation-sessions.log",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/investigation-context-loader.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/bash-command-logger.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/markdown-formatter.py",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__observe-mcp__*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"[$(date '+%Y-%m-%d %H:%M:%S')] Observe query: $TOOL_NAME\" >> /tmp/investigation-queries.log",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__playwright-mcp__*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/playwright-artifact-organizer.sh",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/playwright-browser-cleanup.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/investigation-completeness-check.py",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "permission_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/desktop-notification.sh",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "idle_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/desktop-notification.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CHROME_COUNT=$(ps aux | grep -E '(chrome|chromium).*--headless' | grep -v grep | wc -l | tr -d ' '); if [ \"$CHROME_COUNT\" -gt 0 ]; then echo \"[$(date '+%Y-%m-%d %H:%M:%S')] Final cleanup: killing $CHROME_COUNT browsers\" >> /tmp/playwright-hooks.log; pkill -9 -f 'chrome.*--headless' 2>/dev/null || true; pkill -9 -f 'chromium.*--headless' 2>/dev/null || true; fi",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "echo \"[$(date '+%Y-%m-%d %H:%M:%S')] Investigation session ended\" >> /tmp/investigation-sessions.log",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/statusline-investigation.sh",
+    "padding": 0
+  },
+  "outputStyle": "Explanatory",
+  "spinnerTipsEnabled": true,
+  "syntaxHighlightingDisabled": false,
+  "alwaysThinkingEnabled": true,
+  "promptSuggestionEnabled": true,
+  "plansDirectory": "./.claude/plans"
+}

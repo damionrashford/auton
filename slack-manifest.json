@@ -1,0 +1,52 @@
+{
+  "display_information": {
+    "name": "FastMCP AI Agent",
+    "description": "Multi-agent AI system with research, browser automation, Google Workspace, and blockchain capabilities.",
+    "background_color": "#1a1a2e"
+  },
+  "features": {
+    "app_home": {
+      "home_tab_enabled": false,
+      "messages_tab_enabled": true,
+      "messages_tab_read_only_enabled": false
+    },
+    "bot_user": {
+      "display_name": "FastMCP Agent",
+      "always_online": true
+    }
+  },
+  "oauth_config": {
+    "scopes": {
+      "bot": [
+        "app_mentions:read",
+        "chat:write",
+        "channels:history",
+        "channels:read",
+        "im:history",
+        "im:read",
+        "im:write",
+        "search:read",
+        "reactions:write",
+        "reactions:read",
+        "users:read",
+        "users:read.email",
+        "files:write",
+        "files:read"
+      ]
+    }
+  },
+  "settings": {
+    "event_subscriptions": {
+      "bot_events": [
+        "app_mention",
+        "message.im"
+      ]
+    },
+    "interactivity": {
+      "is_enabled": false
+    },
+    "org_deploy_enabled": false,
+    "socket_mode_enabled": true,
+    "token_rotation_enabled": false
+  }
+}
