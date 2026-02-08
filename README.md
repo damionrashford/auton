@@ -97,10 +97,11 @@ Reply in Slack thread
 | Slack Bolt | `slack_*` | 8 tools (messages, channels, threads, reactions, files) |
 | Webhooks | `webhook_*` | 6 tools (send, receive, subscriptions, deliveries) |
 | Cron Scheduler | `cron_*` | 3 tools (create, delete, list jobs) |
+| RAG Pipeline | `rag_*` | 6 tools (upload, search, search_doc, list, get, delete) |
 | Memory (pgvector) | `memory_*` | 3 tools (store, recall, forget) |
 | Delegation | `delegate_to_*` | 7 tools (one per specialist agent) |
 
-**Total: 81 tools** across 7 specialist agents.
+**Total: 87 tools** across 7 specialist agents.
 
 ---
 
@@ -122,6 +123,30 @@ The Shopify Agent provides full store management via the GraphQL Admin API (v202
 | **Advanced** | `shop_info`, `shop_graphql` | Store info, arbitrary GraphQL |
 
 Authentication uses admin-generated tokens (`shpat_...`) — no OAuth flow needed.
+
+---
+
+## RAG Pipeline
+
+Upload documents of any type — PDFs, Word, Excel, Jupyter notebooks, images (OCR), code files, Markdown — and search them semantically from any agent.
+
+| Component | Technology | Details |
+|:----------|:-----------|:--------|
+| **Embedding** | `bge-small-en-v1.5` via sentence-transformers | 384-dim, local CPU, <5ms per query, 8k chunks/sec batch |
+| **Vector Store** | pgvector (HNSW cosine index) | Same Neon Postgres, new `document_chunks` table |
+| **Parsing** | pymupdf, python-docx, openpyxl, nbformat | PDF, Word, Excel, Jupyter, CSV, images (OCR), 60+ extensions |
+| **Chunking** | Recursive character splitter | 500 chars, 100 overlap, respects paragraph/sentence boundaries |
+
+| Tool | Description |
+|:-----|:------------|
+| `rag_upload` | Upload a file (URL or path), parse, chunk, embed, store |
+| `rag_search` | Semantic search across all documents |
+| `rag_search_doc` | Search within a specific document |
+| `rag_list` | List all uploaded documents |
+| `rag_get` | Get full content of a document |
+| `rag_delete` | Delete a document and its chunks |
+
+Agents with RAG access: Research (full), Shopify (read), Communication (read), Workspace (read).
 
 ---
 
@@ -201,6 +226,10 @@ SHOPIFY_STORE_DOMAIN=your-store.myshopify.com
 SHOPIFY_ADMIN_API_TOKEN=shpat_...
 SHOPIFY_STOREFRONT_API_TOKEN=...
 SHOPIFY_API_VERSION=2026-01
+
+# RAG (document upload + semantic search)
+RAG_ENABLED=true
+RAG_EMBEDDING_MODEL=BAAI/bge-small-en-v1.5
 ```
 
 ### Run
@@ -232,6 +261,7 @@ All configuration via environment variables. See [`.env.example`](.env.example) 
 | **Google Workspace** | `GOOGLE_WORKSPACE_MCP_URL`, `GOOGLE_WORKSPACE_MCP_ENABLED` |
 | **Slack** | `SLACK_BOT_TOKEN`, `SLACK_APP_TOKEN`, `SLACK_ENABLED` |
 | **Shopify** | `SHOPIFY_ENABLED`, `SHOPIFY_STORE_DOMAIN`, `SHOPIFY_ADMIN_API_TOKEN`, `SHOPIFY_STOREFRONT_API_TOKEN` |
+| **RAG** | `RAG_ENABLED`, `RAG_EMBEDDING_MODEL` (default: `BAAI/bge-small-en-v1.5`) |
 | **Blockchain** | `BLOCKCHAIN_ENABLED`, `BLOCKCHAIN_NETWORK`, CDP credentials |
 | **Webhooks** | `WEBHOOK_ENABLED`, `WEBHOOK_SIGNING_SECRET`, timeout, retries |
 | **Storage** | `NEON_DATABASE_URL`, `REDIS_HOST` |
@@ -292,6 +322,13 @@ src/auton/
   queue/
     worker.py               AgentQueue — bounded concurrency via semaphore
 
+  rag/
+    embedder.py             Local embedding (bge-small-en-v1.5, 384-dim, CPU)
+    parser.py               Multi-format document parser (PDF, Word, Excel, etc.)
+    chunker.py              Recursive character text splitter
+    service.py              RAGService — ingest + search pipeline
+    tools.py                6 RAG tool schemas + handler
+
   storage/
     postgres.py             asyncpg pool + migrations
     conversations.py        NeonConversationStore + LRU cache
@@ -337,6 +374,7 @@ src/auton/
 | **Browser** | [Playwright MCP](https://github.com/microsoft/playwright-mcp) |
 | **Workspace** | [Google Workspace MCP](https://github.com/taylorwilsdon/google_workspace_mcp) |
 | **E-commerce** | [Shopify GraphQL Admin API](https://shopify.dev/docs/api/admin-graphql) (v2026-01) |
+| **RAG** | [sentence-transformers](https://sbert.net/) + [bge-small-en-v1.5](https://huggingface.co/BAAI/bge-small-en-v1.5) |
 | **Blockchain** | [Coinbase AgentKit](https://github.com/coinbase/agentkit) |
 | **Chat** | [Slack Bolt](https://api.slack.com/bolt) (Socket Mode) |
 | **Database** | [Neon Postgres](https://neon.tech/) + pgvector |

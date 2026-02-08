@@ -38,6 +38,8 @@ WRITE_TOOLS = frozenset(
         "shop_discount_create",
         "shop_fulfillment_create",
         "shop_metafield_set",
+        # RAG write operations
+        "rag_delete",
         # Google Workspace write operations (pattern-matched)
         "gw_send_email",
         "gw_create_event",
@@ -117,6 +119,12 @@ READ_TOOLS = frozenset(
         "shop_pages_list",
         "shop_storefront_products",
         "shop_storefront_cart_create",
+        # RAG read operations
+        "rag_search",
+        "rag_search_doc",
+        "rag_list",
+        "rag_get",
+        "rag_upload",
     }
 )
 

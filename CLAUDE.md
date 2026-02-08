@@ -109,7 +109,7 @@ Confirmation gate has 3 paths: MCP `ctx.elicit()`, Slack callback (thread-based 
 - RivalSearchMCP (10 tools: `web_search`, `social_search`, `news_aggregation`, `github_search`, `scientific_research`, `content_operations`, `map_website`, `document_analysis`, `research_topic`, `research_agent`)
 - Playwright MCP (always `pw_` prefixed)
 - Google Workspace MCP — `taylorwilsdon/google_workspace_mcp` (always `gw_` prefixed)
-- Internal tools: Slack (`slack_*`), Cron (`cron_*`), Memory (`memory_*`), Delegation (`delegate_to_*`), Blockchain (`cb_*`), Shopify (`shop_*`)
+- Internal tools: Slack (`slack_*`), Cron (`cron_*`), Memory (`memory_*`), Delegation (`delegate_to_*`), Blockchain (`cb_*`), Shopify (`shop_*`), RAG (`rag_*`)
 
 Also exposes `list_prompts()` and `get_prompt()` for fetching RivalSearchMCP's guided research workflows.
 
@@ -128,8 +128,9 @@ Lifespan initialization order:
 8. Cron scheduler + tools
 9. Memory store + tools
 10. Blockchain (AgentKit) + tools
-11. Shopify (Admin + Storefront API) + tools
-12. Webhook service + tools
+11. RAG pipeline (local embedder + pgvector) + tools
+12. Shopify (Admin + Storefront API) + tools
+13. Webhook service + tools
 13. Cron dependency injection
 14. Multi-agent orchestrator + delegation tools
 15. Agent queue (bounded concurrency)
@@ -197,6 +198,7 @@ Pydantic Settings with 92 fields. Major groups:
 - **Webhooks**: `webhook_enabled`, `webhook_signing_secret`, `webhook_timeout`, `webhook_max_retries`, `webhook_retry_backoff`
 - **Blockchain**: `blockchain_enabled`, `blockchain_network`, `cdp_api_key_id`, `cdp_api_key_secret`, `cdp_wallet_secret`
 - **Shopify**: `shopify_enabled`, `shopify_store_domain`, `shopify_admin_api_token`, `shopify_storefront_api_token`, `shopify_api_version`
+- **RAG**: `rag_enabled`, `rag_embedding_model` (default: `BAAI/bge-small-en-v1.5`)
 - **Neon Postgres**: connection URL
 - **Redis**: host, port, DB numbers
 - **Agent behavior**: `max_iterations`, `max_tool_result_length`, `tool_timeout`, context window, compaction, cost/token guardrails

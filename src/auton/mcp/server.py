@@ -268,7 +268,47 @@ async def agent_lifespan(server: FastMCP):
     else:
         logger.info("Blockchain: skipped (not configured).")
 
-    # 7c. Initialize Shopify store management tools (optional).
+    # 7c. Initialize RAG pipeline (optional, requires Neon + sentence-transformers).
+    rag_service = None
+    if settings.rag_enabled and pool is not None:
+        try:
+            from auton.rag import RAG_TOOLS, RAGService, handle_rag_tool
+            from auton.rag.embedder import LocalEmbedder
+
+            rag_embedder = LocalEmbedder(model_name=settings.rag_embedding_model)
+            rag_embedder.start()  # Blocking model load (~2s first run)
+
+            if rag_embedder.is_ready:
+                rag_service = RAGService(pool=pool, embedder=rag_embedder)
+                await rag_service.start()
+
+                if rag_service.is_connected:
+                    bridge.register_internal_tools(
+                        RAG_TOOLS,
+                        handler=lambda name, args: handle_rag_tool(
+                            rag_service, name, args
+                        ),
+                        source="rag",
+                    )
+                    logger.info("RAG: %d tools registered.", len(RAG_TOOLS))
+                else:
+                    logger.warning("RAG: service init failed.")
+            else:
+                logger.warning("RAG: embedding model failed to load.")
+        except ImportError:
+            logger.warning(
+                "sentence-transformers not installed. "
+                "Install with: pip install sentence-transformers"
+            )
+        except Exception:
+            logger.warning("RAG initialization failed.", exc_info=True)
+    else:
+        if not settings.rag_enabled:
+            logger.info("RAG: skipped (not enabled).")
+        elif pool is None:
+            logger.info("RAG: skipped (requires Neon Postgres).")
+
+    # 7d. Initialize Shopify store management tools (optional).
     if settings.shopify_enabled and settings.shopify_admin_api_token:
         try:
             from auton.shopify import (

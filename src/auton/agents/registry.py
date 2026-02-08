@@ -55,7 +55,7 @@ class AgentRegistry:
         )
 
         # ── RESEARCH ─────────────────────────────────────────────
-        # All RivalSearchMCP tools + read-only Playwright + memory
+        # All RivalSearchMCP tools + read-only Playwright + memory + RAG
         self._configs[AgentRole.RESEARCH] = AgentConfig(
             role=AgentRole.RESEARCH,
             allowed_tool_patterns=[
@@ -78,6 +78,8 @@ class AgentRegistry:
                 "browser_navigate",
                 "browser_snapshot",
                 "browser_screenshot",
+                # RAG (document retrieval)
+                "rag_*",
                 # Memory
                 "memory_store",
                 "memory_recall",
@@ -128,7 +130,7 @@ class AgentRegistry:
         )
 
         # ── COMMUNICATION ────────────────────────────────────────
-        # Slack + email tools + memory
+        # Slack + email tools + memory + RAG read
         self._configs[AgentRole.COMMUNICATION] = AgentConfig(
             role=AgentRole.COMMUNICATION,
             allowed_tool_patterns=[
@@ -146,6 +148,10 @@ class AgentRegistry:
                 "gw_get_messages",
                 "gw_search_messages",
                 "gw_list_spaces",
+                # RAG (document retrieval — read only)
+                "rag_search",
+                "rag_search_doc",
+                "rag_list",
                 # Memory
                 "memory_recall",
                 "memory_store",
@@ -171,11 +177,14 @@ class AgentRegistry:
         )
 
         # ── WORKSPACE ────────────────────────────────────────────
-        # All Google Workspace tools + memory
+        # All Google Workspace tools + memory + RAG read
         self._configs[AgentRole.WORKSPACE] = AgentConfig(
             role=AgentRole.WORKSPACE,
             allowed_tool_patterns=[
                 "gw_*",
+                "rag_search",
+                "rag_search_doc",
+                "rag_list",
                 "memory_recall",
                 "memory_store",
             ],
@@ -238,6 +247,9 @@ class AgentRegistry:
             role=AgentRole.SHOPIFY,
             allowed_tool_patterns=[
                 "shop_*",
+                "rag_search",
+                "rag_search_doc",
+                "rag_list",
                 "memory_recall",
                 "memory_store",
             ],

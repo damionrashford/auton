@@ -434,6 +434,16 @@ class Settings(BaseSettings):
         description="Shopify API version (YYYY-MM format).",
     )
 
+    # ── RAG (Retrieval-Augmented Generation) ─────────────────────
+    rag_enabled: bool = Field(
+        default=False,
+        description="Enable RAG document upload and retrieval tools.",
+    )
+    rag_embedding_model: str = Field(
+        default="BAAI/bge-small-en-v1.5",
+        description="Local sentence-transformers embedding model name.",
+    )
+
     # ── Server ──────────────────────────────────────────────────────
     server_host: str = Field(default="0.0.0.0", description="Bind host.")
     server_port: int = Field(default=8000, description="Bind port.")
