@@ -1,39 +1,46 @@
+<div align="center">
+
 # Auton
 
-A multi-agent orchestrator-worker system built on the [Model Context Protocol](https://modelcontextprotocol.io/) (MCP). An orchestrator decomposes user requests and delegates to specialist agents -- each with filtered tool access, focused prompts, and isolated conversation state. Talk to it from Slack.
+**Autonomous multi-agent orchestrator powered by Model Context Protocol**
 
-Built with [FastMCP 3.0](https://gofastmcp.com/), Python 3.11+, fully async.
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3776AB?logo=python&logoColor=white)](https://python.org)
+[![FastMCP 3.0](https://img.shields.io/badge/FastMCP-3.0-00D4AA)](https://gofastmcp.com/)
+[![xAI Grok](https://img.shields.io/badge/xAI-Grok%204.1-000000)](https://x.ai)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
+An orchestrator decomposes user requests and delegates to specialist agents — each with filtered tool access, focused prompts, and isolated conversation state. Talk to it from Slack.
+
+</div>
 
 ---
 
-## What It Does
-
-You send a message in Slack. The orchestrator figures out what needs to happen, delegates to the right specialists, and replies with a synthesized answer.
+## Overview
 
 ```
 "Research the latest DeFi yields on Base, then send a summary to #defi-research"
 
 Orchestrator
-  -> Research Agent: web_search + social_search + content_operations
-  -> Blockchain Agent: cb_aave_portfolio (check current positions)
-  -> Communication Agent: slack_send_message to #defi-research
+  -> Research Agent    web_search + social_search + content_operations
+  -> Blockchain Agent  cb_aave_portfolio (check current positions)
+  -> Communication     slack_send_message to #defi-research
   -> Synthesize all results into one reply
 ```
 
-Each specialist only sees its own tools. The Research Agent cannot send Slack messages. The Blockchain Agent cannot browse the web. The orchestrator cannot execute anything directly -- it can only delegate.
+Each specialist only sees its own tools. The Research Agent cannot send Slack messages. The Blockchain Agent cannot browse the web. The orchestrator cannot execute anything directly — it can only delegate.
 
 ---
 
-## Agent Roles
+## Agents
 
-| Role | Tools | Capabilities |
-|------|-------|-------------|
+| Role | Tools | What It Does |
+|:-----|:------|:-------------|
 | **Orchestrator** | `delegate_to_*`, `memory_recall` | Task decomposition, delegation, result synthesis |
-| **Research** | 10 RivalSearchMCP tools + Playwright (read-only) + memory | Web search, social search, news, GitHub, academic papers, content extraction, document analysis (OCR), site mapping |
-| **Browser** | All Playwright tools + memory | Click, type, fill forms, scroll, screenshots, PDF generation |
-| **Communication** | Slack tools + Gmail + Google Chat + memory | Send/read messages, emails, threads, channels, file uploads |
-| **Workspace** | All Google Workspace tools + memory | Calendar, Drive, Docs, Sheets, Slides, Forms, Tasks, Contacts, Apps Script |
-| **Blockchain** | 19 Coinbase AgentKit tools + memory | Wallets, transfers, token swaps, DeFi (Aave V3), NFTs, Superfluid streaming, .base.eth domains, Pyth oracles |
+| **Research** | 10 search tools + Playwright read-only | Web, social, news, GitHub, academic papers, OCR, site mapping |
+| **Browser** | Full Playwright suite | Click, type, fill forms, scroll, screenshots, PDF generation |
+| **Communication** | Slack + Gmail + Google Chat | Messages, emails, threads, channels, file uploads |
+| **Workspace** | Google Workspace | Calendar, Drive, Docs, Sheets, Slides, Forms, Tasks |
+| **Blockchain** | 19 Coinbase AgentKit tools | Wallets, swaps, DeFi (Aave V3), NFTs, streaming, .base.eth |
 
 ---
 
@@ -43,29 +50,23 @@ Each specialist only sees its own tools. The Research Agent cannot send Slack me
 Slack (Socket Mode)
   |
   v
-SlackBoltUI
-  |-- rate limiting (5/min per user)
-  |-- bot self-check (prevent loops)
+SlackBoltUI ── rate limiting (5/min) + bot self-check
   |
   v
 OrchestratorAgent.run()
   |
-  |-- decompose_task()    LLM picks specialists
-  |-- execute_tasks()     parallel or sequential
+  |-- decompose_task()        LLM selects specialists
+  |-- execute_tasks()         parallel or sequential
   |     |
-  |     |-- run_agent(agent_config=RESEARCH, ...)
-  |     |-- run_agent(agent_config=BROWSER, ...)
-  |     |-- run_agent(agent_config=COMMUNICATION, ...)
-  |     |-- run_agent(agent_config=WORKSPACE, ...)
-  |     |-- run_agent(agent_config=BLOCKCHAIN, ...)
+  |     |-- Research Agent    (RivalSearchMCP + Playwright read-only)
+  |     |-- Browser Agent     (Playwright full access)
+  |     |-- Communication     (Slack + Gmail + Google Chat)
+  |     |-- Workspace         (Google Calendar, Drive, Docs, Sheets)
+  |     |-- Blockchain        (Coinbase AgentKit)
   |     |
-  |     each agent:
-  |       - filtered tool schemas (registry)
-  |       - role-specific system prompt
-  |       - isolated conversation
-  |       - 3-path confirmation for writes
+  |     each agent: filtered tools, role prompt, isolated state
   |
-  |-- synthesize_results()  LLM combines outputs
+  |-- synthesize_results()    LLM combines outputs
   |
   v
 Reply in Slack thread
@@ -74,20 +75,20 @@ Reply in Slack thread
 ### External MCP Servers
 
 | Server | Connection | Tools |
-|--------|-----------|-------|
-| [RivalSearchMCP](https://rivalsearchmcp.fastmcp.app) | Remote HTTP | 10 search/analysis tools (no prefix) |
-| [Playwright MCP](https://github.com/microsoft/playwright-mcp) | Local subprocess | Browser automation (`pw_` prefix) |
-| [Google Workspace MCP](https://github.com/taylorwilsdon/google_workspace_mcp) | Local HTTP | Calendar, Drive, Docs, Sheets, etc. (`gw_` prefix) |
+|:-------|:-----------|:------|
+| [RivalSearchMCP](https://rivalsearchmcp.fastmcp.app) | Remote HTTP | 10 search/analysis tools |
+| [Playwright MCP](https://github.com/microsoft/playwright-mcp) | Local subprocess | Browser automation (`pw_*`) |
+| [Google Workspace MCP](https://github.com/taylorwilsdon/google_workspace_mcp) | Local HTTP | Calendar, Drive, Docs, Sheets (`gw_*`) |
 
-### Internal Tool Sources
+### Internal Tools
 
-| Source | Registration | Tools |
-|--------|-------------|-------|
-| Slack Bolt | `slack-sdk` + `slack-bolt` | 8 tools (`slack_*`) |
-| Cron Scheduler | APScheduler | 3 tools (`cron_*`) |
-| Memory | pgvector embeddings | 3 tools (`memory_*`) |
-| Delegation | Orchestrator-only | 5 tools (`delegate_to_*`) |
-| Blockchain | Coinbase AgentKit | 19 tools (`cb_*`) |
+| Source | Tools |
+|:-------|:------|
+| Slack Bolt | 8 tools (`slack_*`) |
+| Coinbase AgentKit | 19 tools (`cb_*`) |
+| Cron Scheduler | 3 tools (`cron_*`) |
+| Memory (pgvector) | 3 tools (`memory_*`) |
+| Delegation | 5 tools (`delegate_to_*`) |
 
 ---
 
@@ -95,13 +96,15 @@ Reply in Slack thread
 
 Every write operation requires explicit user approval. Three confirmation paths:
 
-1. **MCP Context** -- `ctx.elicit()` when accessed via MCP protocol directly
-2. **Slack Callback** -- bot posts a confirmation message in the thread, polls for "yes"/"no" reply (60s timeout, defaults to deny)
-3. **Block** -- if no confirmation mechanism is available, write operations are blocked entirely
+| Path | Mechanism | Timeout |
+|:-----|:----------|:--------|
+| **MCP** | `ctx.elicit()` structured dialog | — |
+| **Slack** | Thread-based yes/no poll | 60s (defaults to deny) |
+| **Block** | No mechanism available | Blocked entirely |
 
-All blockchain operations (`cb_*`) require confirmation unconditionally.
-
-Google Workspace write operations are pattern-matched against dangerous keywords (create, delete, modify, send, share, transfer, batch, etc.).
+- All `cb_*` blockchain tools require confirmation **unconditionally**
+- `gw_*` tools matched against dangerous keyword patterns (create, delete, send, modify, transfer, etc.)
+- Explicit `WRITE_TOOLS` frozenset for Slack, Cron, and Memory operations
 
 ---
 
@@ -111,17 +114,16 @@ Google Workspace write operations are pattern-matched against dangerous keywords
 
 - Python 3.11+
 - [uv](https://github.com/astral-sh/uv) package manager
-- Redis (required for caching and session state)
-- Neon Postgres (optional, for persistent storage)
+- Redis (caching and session state)
+- Neon Postgres (optional — graceful fallback to in-memory)
 
 ### Install
 
 ```bash
-git clone https://github.com/your-username/auton.git
+git clone https://github.com/damionrashford/auton.git
 cd auton
 uv sync
 cp .env.example .env
-# Edit .env with your API keys
 ```
 
 ### Configure
@@ -129,10 +131,10 @@ cp .env.example .env
 Minimum required in `.env`:
 
 ```bash
-OPENROUTER_API_KEY=sk-or-...          # LLM access
+XAI_API_KEY=xai-...                   # xAI API key
 RIVAL_SEARCH_URL=https://RivalSearchMCP.fastmcp.app/mcp
 SLACK_BOT_TOKEN=xoxb-...              # Slack bot token
-SLACK_APP_TOKEN=xapp-...              # Slack Socket Mode token
+SLACK_APP_TOKEN=xapp-...              # Socket Mode token
 SLACK_ENABLED=true
 ```
 
@@ -153,84 +155,50 @@ CDP_WALLET_SECRET=...
 uv run uvicorn auton.app:app --host 0.0.0.0 --port 8000
 ```
 
-The server starts the MCP endpoint at `/mcp`, connects to all configured MCP servers, registers internal tools, initializes the orchestrator, and starts the Slack Bolt listener. Then @mention the bot or DM it in Slack.
+The server starts the MCP endpoint at `/mcp`, connects to configured MCP servers, registers internal tools, initializes the orchestrator, and starts the Slack listener. Then `@mention` the bot or DM it.
 
 ### Slack Setup
 
 1. Create app at [api.slack.com/apps](https://api.slack.com/apps)
-2. Enable Socket Mode, get `SLACK_APP_TOKEN` (xapp-...)
+2. Enable **Socket Mode** — get `SLACK_APP_TOKEN` (`xapp-...`)
 3. Add Bot Token Scopes: `app_mentions:read`, `chat:write`, `channels:history`, `channels:read`, `im:history`, `im:read`, `im:write`, `search:read`, `reactions:write`, `users:read`, `files:write`
 4. Subscribe to events: `app_mention`, `message.im`
-5. Install to workspace, get `SLACK_BOT_TOKEN` (xoxb-...)
+5. Install to workspace — get `SLACK_BOT_TOKEN` (`xoxb-...`)
 
 ---
 
 ## Configuration
 
-All configuration via environment variables. See [.env.example](.env.example) for the full template.
+All configuration via environment variables. See [`.env.example`](.env.example) for the full template (87 fields).
 
 | Group | Key Fields |
-|-------|-----------|
-| LLM | `OPENROUTER_API_KEY`, `OPENROUTER_MODEL` (default: `x-ai/grok-4.1-fast`), fallbacks, sampling, reasoning |
-| Playwright | `PLAYWRIGHT_MCP_PORT`, headless, browser, stealth, viewport |
-| Google Workspace | `GOOGLE_WORKSPACE_MCP_URL`, `GOOGLE_WORKSPACE_MCP_ENABLED` |
-| Slack | `SLACK_BOT_TOKEN`, `SLACK_APP_TOKEN`, `SLACK_ENABLED` |
-| Blockchain | `BLOCKCHAIN_ENABLED`, `BLOCKCHAIN_NETWORK`, `CDP_API_KEY_ID`, `CDP_API_KEY_SECRET` |
-| Storage | `NEON_DATABASE_URL`, `REDIS_HOST` |
-| Agent | `MAX_ITERATIONS` (25), `TOOL_TIMEOUT` (120s), cost guardrails |
-| Multi-Agent | Per-role iteration limits, delegation depth, orchestrator timeout |
+|:------|:-----------|
+| **xAI LLM** | `XAI_API_KEY`, `XAI_MODEL` (default: `grok-4.1-fast`, 2M context) |
+| **Playwright** | `PLAYWRIGHT_MCP_PORT`, headless, browser, stealth, viewport |
+| **Google Workspace** | `GOOGLE_WORKSPACE_MCP_URL`, `GOOGLE_WORKSPACE_MCP_ENABLED` |
+| **Slack** | `SLACK_BOT_TOKEN`, `SLACK_APP_TOKEN`, `SLACK_ENABLED` |
+| **Blockchain** | `BLOCKCHAIN_ENABLED`, `BLOCKCHAIN_NETWORK`, CDP credentials |
+| **Storage** | `NEON_DATABASE_URL`, `REDIS_HOST` |
+| **Agent** | `MAX_ITERATIONS` (25), `TOOL_TIMEOUT` (120s), cost guardrails |
+| **Multi-Agent** | Per-role iteration limits, delegation depth, orchestrator timeout |
 
 ---
 
-## Database Schema
+## Database
 
-Neon Postgres with pgvector. Applied automatically on startup.
+Neon Postgres with pgvector. Schema applied automatically on startup.
 
 | Table | Purpose |
-|-------|---------|
+|:------|:--------|
 | `conversations` | Metadata + `parent_conversation_id` + `agent_role` for delegation chains |
 | `messages` | Individual messages within conversations |
-| `tool_call_logs` | Tool call audit log (name, args, result, duration, success) |
+| `tool_call_logs` | Audit log — name, args, result, duration, success |
 | `usage_logs` | Token usage and cost per conversation |
-| `agent_memory` | pgvector embeddings (1536-dim) with semantic search |
+| `agent_memory` | pgvector embeddings (1536-dim) with HNSW cosine search |
 | `agent_decision_logs` | Agent decisions for observability |
-| `agent_delegations` | Delegation tracking (parent/child, status, cost, tools) |
+| `agent_delegations` | Delegation tracking — parent/child, status, cost, tools used |
 | `cron_jobs` | Scheduled task definitions |
 | `cron_job_runs` | Cron execution history |
-
----
-
-## Extending
-
-Adding a new specialist agent follows a repeatable pattern. See [CLAUDE.md](CLAUDE.md) for the full 10-step recipe.
-
-The short version:
-
-1. Create `src/auton/<name>/` with `client.py` and `tools.py`
-2. Add `AgentRole.<NAME>` and registry config
-3. Add system prompt and `delegate_to_<name>` tool
-4. Add safety rules and config fields
-5. Initialize in server lifespan
-
----
-
-## Tech Stack
-
-| Component | Technology |
-|-----------|-----------|
-| MCP Framework | [FastMCP 3.0](https://gofastmcp.com/) |
-| HTTP Framework | [FastAPI](https://fastapi.tiangolo.com/) |
-| LLM Provider | [OpenRouter](https://openrouter.ai/) (default: Grok 4.1 Fast) |
-| Search | [RivalSearchMCP](https://rivalsearchmcp.fastmcp.app) |
-| Browser | [Playwright MCP](https://github.com/microsoft/playwright-mcp) |
-| Google Workspace | [workspace-mcp](https://github.com/taylorwilsdon/google_workspace_mcp) |
-| Blockchain | [Coinbase AgentKit](https://github.com/coinbase/agentkit) |
-| Chat UI | [Slack Bolt](https://api.slack.com/bolt) (Socket Mode) |
-| Database | [Neon Postgres](https://neon.tech/) + pgvector |
-| Cache | Redis |
-| Scheduling | APScheduler |
-| Token Counting | tiktoken |
-| Observability | OpenTelemetry (optional) |
 
 ---
 
@@ -239,46 +207,46 @@ The short version:
 ```
 src/auton/
   app.py                    FastAPI + FastMCP ASGI composition
-  config.py                 Pydantic Settings (120+ fields)
+  config.py                 Pydantic Settings (87 fields)
   models.py                 Shared data models
 
   agents/
     roles.py                AgentRole enum, AgentConfig, DelegationTask
     registry.py             Tool filtering per role (glob patterns)
-    orchestrator.py         Decompose, delegate, synthesize
+    orchestrator.py         Decompose -> delegate -> synthesize
     prompts.py              Role-specific system prompts
     tools.py                Delegation tools (delegate_to_*)
 
   core/
-    agent.py                Agent loop (run_agent with AgentConfig)
-    llm.py                  OpenRouter client
+    agent.py                Agentic loop (run_agent)
+    llm.py                  xAI SDK client (gRPC + REST embeddings)
     safety.py               3-tier confirmation system
-    tokenizer.py            Token counting
-    prompts.py              Legacy system prompt (unused)
+    tokenizer.py            Token counting via tiktoken
 
   bridge/
-    manager.py              MCPBridge (tool routing + prompt access)
+    manager.py              MCPBridge — tool routing + prompt access
     playwright.py           Playwright subprocess manager
 
   mcp/
-    server.py               FastMCP server + lifespan + chat tool
+    server.py               FastMCP server, lifespan, chat tool
     dependencies.py         DI singletons
     middleware.py            Error, Timing, Logging, Caching
 
   storage/
     postgres.py             asyncpg pool + migrations
-    conversations.py        NeonConversationStore + delegation tracking
+    conversations.py        NeonConversationStore + LRU cache
     memory.py               pgvector semantic memory
-    schema.sql              Full database schema
+    memory_tools.py         memory_store, memory_recall, memory_forget
+    schema.sql              Database schema (9 tables)
 
   slack/
     bolt_app.py             Slack Bolt UI (Socket Mode)
     client.py               Outbound Slack API wrapper
-    tools.py                8 Slack tool schemas + handler
+    tools.py                8 tool schemas + handler
 
   blockchain/
     client.py               Coinbase AgentKit wrapper
-    tools.py                19 blockchain tool schemas + handler
+    tools.py                19 tool schemas + handler
 
   scheduler/
     service.py              APScheduler cron service
@@ -286,6 +254,40 @@ src/auton/
 
   telemetry/
     spans.py                OpenTelemetry helpers
+```
+
+---
+
+## Tech Stack
+
+| | Technology |
+|:--|:-----------|
+| **Protocol** | [Model Context Protocol](https://modelcontextprotocol.io/) via [FastMCP 3.0](https://gofastmcp.com/) |
+| **HTTP** | [FastAPI](https://fastapi.tiangolo.com/) |
+| **LLM** | [xAI Grok 4.1 Fast](https://x.ai) (2M context) |
+| **Search** | [RivalSearchMCP](https://rivalsearchmcp.fastmcp.app) |
+| **Browser** | [Playwright MCP](https://github.com/microsoft/playwright-mcp) |
+| **Workspace** | [Google Workspace MCP](https://github.com/taylorwilsdon/google_workspace_mcp) |
+| **Blockchain** | [Coinbase AgentKit](https://github.com/coinbase/agentkit) |
+| **Chat** | [Slack Bolt](https://api.slack.com/bolt) (Socket Mode) |
+| **Database** | [Neon Postgres](https://neon.tech/) + pgvector |
+| **Cache** | Redis |
+| **Scheduling** | APScheduler |
+| **Tokens** | tiktoken |
+| **Observability** | OpenTelemetry (optional) |
+
+---
+
+## Extending
+
+Adding a new specialist agent follows a 10-step recipe. See [AGENTS.md](AGENTS.md) for the full guide.
+
+```
+1. Create src/auton/<name>/ with client.py + tools.py
+2. Add AgentRole + registry config
+3. Add system prompt + delegation tool
+4. Add safety rules + config fields
+5. Initialize in server lifespan
 ```
 
 ---
