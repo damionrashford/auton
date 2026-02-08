@@ -18,16 +18,18 @@ An orchestrator decomposes user requests and delegates to specialist agents — 
 ## Overview
 
 ```
-"Research the latest DeFi yields on Base, then send a summary to #defi-research"
+"Research the latest DeFi yields on Base, create a 15% off discount on
+ my Shopify store, then send a summary to #defi-research"
 
 Orchestrator
   -> Research Agent    web_search + social_search + content_operations
   -> Blockchain Agent  cb_aave_portfolio (check current positions)
+  -> Shopify Agent     shop_discount_create (15% off code)
   -> Communication     slack_send_message to #defi-research
   -> Synthesize all results into one reply
 ```
 
-Each specialist only sees its own tools. The Research Agent cannot send Slack messages. The Blockchain Agent cannot browse the web. The orchestrator cannot execute anything directly — it can only delegate.
+Each specialist only sees its own tools. The Research Agent cannot send Slack messages. The Blockchain Agent cannot browse the web. The Shopify Agent cannot access Google Workspace. The orchestrator cannot execute anything directly — it can only delegate.
 
 ---
 
@@ -41,6 +43,7 @@ Each specialist only sees its own tools. The Research Agent cannot send Slack me
 | **Communication** | Slack + Gmail + Google Chat + Webhooks | Messages, emails, HTTP webhooks, threads, channels |
 | **Workspace** | Google Workspace | Calendar, Drive, Docs, Sheets, Slides, Forms, Tasks |
 | **Blockchain** | 19 Coinbase AgentKit tools | Wallets, swaps, DeFi (Aave V3), NFTs, streaming, .base.eth |
+| **Shopify** | 25 store management tools | Products, orders, customers, inventory, discounts, fulfillment |
 
 ---
 
@@ -50,7 +53,10 @@ Each specialist only sees its own tools. The Research Agent cannot send Slack me
 Slack (Socket Mode)
   |
   v
-SlackBoltUI ── rate limiting (5/min) + bot self-check
+SlackBoltUI ── rate limiting (5/min, async-locked) + bot self-check
+  |
+  v
+AgentQueue ── bounded concurrency (default: 3 concurrent runs)
   |
   v
 OrchestratorAgent.run()
@@ -60,11 +66,13 @@ OrchestratorAgent.run()
   |     |
   |     |-- Research Agent    (RivalSearchMCP + Playwright read-only)
   |     |-- Browser Agent     (Playwright full access)
-  |     |-- Communication     (Slack + Gmail + Google Chat)
+  |     |-- Communication     (Slack + Gmail + Google Chat + Webhooks)
   |     |-- Workspace         (Google Calendar, Drive, Docs, Sheets)
   |     |-- Blockchain        (Coinbase AgentKit)
+  |     |-- Shopify           (Admin + Storefront GraphQL API)
   |     |
   |     each agent: filtered tools, role prompt, isolated state
+  |     confirmation_callback: per-request (no shared state)
   |
   |-- synthesize_results()    LLM combines outputs
   |
@@ -82,14 +90,38 @@ Reply in Slack thread
 
 ### Internal Tools
 
-| Source | Tools |
-|:-------|:------|
-| Slack Bolt | 8 tools (`slack_*`) |
-| Webhooks | 6 tools (`webhook_*`) |
-| Coinbase AgentKit | 19 tools (`cb_*`) |
-| Cron Scheduler | 3 tools (`cron_*`) |
-| Memory (pgvector) | 3 tools (`memory_*`) |
-| Delegation | 5 tools (`delegate_to_*`) |
+| Source | Prefix | Tools |
+|:-------|:-------|:------|
+| Shopify Admin + Storefront API | `shop_*` | 25 tools (products, orders, customers, inventory, discounts, fulfillment, collections, metafields, storefront cart) |
+| Coinbase AgentKit | `cb_*` | 19 tools (wallets, swaps, DeFi, NFTs, streaming) |
+| Slack Bolt | `slack_*` | 8 tools (messages, channels, threads, reactions, files) |
+| Webhooks | `webhook_*` | 6 tools (send, receive, subscriptions, deliveries) |
+| Cron Scheduler | `cron_*` | 3 tools (create, delete, list jobs) |
+| Memory (pgvector) | `memory_*` | 3 tools (store, recall, forget) |
+| Delegation | `delegate_to_*` | 7 tools (one per specialist agent) |
+
+**Total: 81 tools** across 7 specialist agents.
+
+---
+
+## Shopify Integration
+
+The Shopify Agent provides full store management via the GraphQL Admin API (v2026-01) and Storefront API.
+
+| Domain | Tools | Operations |
+|:-------|:------|:-----------|
+| **Products** | `shop_products_list`, `shop_product_get`, `shop_product_create`, `shop_product_update` | Search, view details, create, update |
+| **Orders** | `shop_orders_list`, `shop_order_get`, `shop_order_update` | Search, view details, update tags/notes |
+| **Customers** | `shop_customers_list`, `shop_customer_get`, `shop_customer_update` | Search, view details, update |
+| **Inventory** | `shop_inventory_query`, `shop_inventory_adjust` | Check levels, adjust quantities |
+| **Collections** | `shop_collections_list`, `shop_collection_create` | List, create |
+| **Discounts** | `shop_discounts_list`, `shop_discount_create` | List, create percentage codes |
+| **Fulfillment** | `shop_fulfillments_list`, `shop_fulfillment_create` | List orders, mark shipped |
+| **Content** | `shop_metafields_query`, `shop_metafield_set`, `shop_pages_list` | Metafields, pages |
+| **Storefront** | `shop_storefront_products`, `shop_storefront_cart_create` | Public search, cart creation |
+| **Advanced** | `shop_info`, `shop_graphql` | Store info, arbitrary GraphQL |
+
+Authentication uses admin-generated tokens (`shpat_...`) — no OAuth flow needed.
 
 ---
 
@@ -103,9 +135,18 @@ Every write operation requires explicit user approval. Three confirmation paths:
 | **Slack** | Thread-based yes/no poll | 60s (defaults to deny) |
 | **Block** | No mechanism available | Blocked entirely |
 
+Tool confirmation rules:
+
 - All `cb_*` blockchain tools require confirmation **unconditionally**
-- `gw_*` tools matched against dangerous keyword patterns (create, delete, send, modify, transfer, etc.)
-- Explicit `WRITE_TOOLS` frozenset for Slack, Cron, and Memory operations
+- `shop_*` tools matched against dangerous keywords (create, update, delete, adjust, set)
+- `gw_*` tools matched against dangerous keywords (create, delete, send, modify, transfer, etc.)
+- Explicit `WRITE_TOOLS` frozenset for Slack, Cron, Webhook, and Memory operations
+
+### Concurrency Safety
+
+- **Bounded concurrency**: `AgentQueue` limits concurrent agent runs (default: 3) via `asyncio.Semaphore`
+- **Per-request callbacks**: Confirmation callbacks flow as parameters, not shared instance state
+- **Thread-safe rate limiting**: Slack rate tracker uses `asyncio.Lock`
 
 ---
 
@@ -115,7 +156,7 @@ Every write operation requires explicit user approval. Three confirmation paths:
 
 - Python 3.11+
 - [uv](https://github.com/astral-sh/uv) package manager
-- Redis (caching and session state)
+- Redis (caching, session state, task queue)
 - Neon Postgres (optional — graceful fallback to in-memory)
 
 ### Install
@@ -142,12 +183,24 @@ SLACK_ENABLED=true
 Optional services:
 
 ```bash
-NEON_DATABASE_URL=postgresql://...     # Persistent conversations + memory
+# Persistent storage + semantic memory
+NEON_DATABASE_URL=postgresql://...
+
+# Google Workspace
 GOOGLE_WORKSPACE_MCP_URL=http://localhost:8001/mcp
+
+# Blockchain (Coinbase AgentKit)
 BLOCKCHAIN_ENABLED=true
-CDP_API_KEY_ID=...                     # Coinbase AgentKit
+CDP_API_KEY_ID=...
 CDP_API_KEY_SECRET=...
 CDP_WALLET_SECRET=...
+
+# Shopify store management
+SHOPIFY_ENABLED=true
+SHOPIFY_STORE_DOMAIN=your-store.myshopify.com
+SHOPIFY_ADMIN_API_TOKEN=shpat_...
+SHOPIFY_STOREFRONT_API_TOKEN=...
+SHOPIFY_API_VERSION=2026-01
 ```
 
 ### Run
@@ -156,7 +209,7 @@ CDP_WALLET_SECRET=...
 uv run uvicorn auton.app:app --host 0.0.0.0 --port 8000
 ```
 
-The server starts the MCP endpoint at `/mcp`, connects to configured MCP servers, registers internal tools, initializes the orchestrator, and starts the Slack listener. Then `@mention` the bot or DM it.
+The server starts the MCP endpoint at `/mcp`, connects to configured MCP servers, registers internal tools, initializes the orchestrator with bounded concurrency, and starts the Slack listener. Then `@mention` the bot or DM it.
 
 ### Slack Setup
 
@@ -170,7 +223,7 @@ The server starts the MCP endpoint at `/mcp`, connects to configured MCP servers
 
 ## Configuration
 
-All configuration via environment variables. See [`.env.example`](.env.example) for the full template (87 fields).
+All configuration via environment variables. See [`.env.example`](.env.example) for the full template.
 
 | Group | Key Fields |
 |:------|:-----------|
@@ -178,8 +231,11 @@ All configuration via environment variables. See [`.env.example`](.env.example) 
 | **Playwright** | `PLAYWRIGHT_MCP_PORT`, headless, browser, stealth, viewport |
 | **Google Workspace** | `GOOGLE_WORKSPACE_MCP_URL`, `GOOGLE_WORKSPACE_MCP_ENABLED` |
 | **Slack** | `SLACK_BOT_TOKEN`, `SLACK_APP_TOKEN`, `SLACK_ENABLED` |
+| **Shopify** | `SHOPIFY_ENABLED`, `SHOPIFY_STORE_DOMAIN`, `SHOPIFY_ADMIN_API_TOKEN`, `SHOPIFY_STOREFRONT_API_TOKEN` |
 | **Blockchain** | `BLOCKCHAIN_ENABLED`, `BLOCKCHAIN_NETWORK`, CDP credentials |
+| **Webhooks** | `WEBHOOK_ENABLED`, `WEBHOOK_SIGNING_SECRET`, timeout, retries |
 | **Storage** | `NEON_DATABASE_URL`, `REDIS_HOST` |
+| **Queue** | `DOCKET_URL` (Redis), `MAX_CONCURRENT_AGENT_RUNS` (default: 3) |
 | **Agent** | `MAX_ITERATIONS` (25), `TOOL_TIMEOUT` (120s), cost guardrails |
 | **Multi-Agent** | Per-role iteration limits, delegation depth, orchestrator timeout |
 
@@ -208,15 +264,15 @@ Neon Postgres with pgvector. Schema applied automatically on startup.
 ```
 src/auton/
   app.py                    FastAPI + FastMCP ASGI composition
-  config.py                 Pydantic Settings (87 fields)
+  config.py                 Pydantic Settings (92+ fields)
   models.py                 Shared data models
 
   agents/
-    roles.py                AgentRole enum, AgentConfig, DelegationTask
+    roles.py                AgentRole enum (7 roles), AgentConfig, DelegationTask
     registry.py             Tool filtering per role (glob patterns)
     orchestrator.py         Decompose -> delegate -> synthesize
-    prompts.py              Role-specific system prompts
-    tools.py                Delegation tools (delegate_to_*)
+    prompts.py              Role-specific system prompts (7 agents)
+    tools.py                Delegation tools (delegate_to_*, 7 tools)
 
   core/
     agent.py                Agentic loop (run_agent)
@@ -233,6 +289,9 @@ src/auton/
     dependencies.py         DI singletons
     middleware.py            Error, Timing, Logging, Caching
 
+  queue/
+    worker.py               AgentQueue — bounded concurrency via semaphore
+
   storage/
     postgres.py             asyncpg pool + migrations
     conversations.py        NeonConversationStore + LRU cache
@@ -241,13 +300,21 @@ src/auton/
     schema.sql              Database schema (9 tables)
 
   slack/
-    bolt_app.py             Slack Bolt UI (Socket Mode)
+    bolt_app.py             Slack Bolt UI (Socket Mode, async rate limiter)
     client.py               Outbound Slack API wrapper
     tools.py                8 tool schemas + handler
+
+  shopify/
+    client.py               Shopify GraphQL API wrapper (httpx, Admin + Storefront)
+    tools.py                25 tool schemas + GraphQL queries + handler
 
   blockchain/
     client.py               Coinbase AgentKit wrapper
     tools.py                19 tool schemas + handler
+
+  webhooks/
+    client.py               Outbound HTTP + inbound receiver
+    tools.py                6 tool schemas + handler
 
   scheduler/
     service.py              APScheduler cron service
@@ -269,10 +336,12 @@ src/auton/
 | **Search** | [RivalSearchMCP](https://rivalsearchmcp.fastmcp.app) |
 | **Browser** | [Playwright MCP](https://github.com/microsoft/playwright-mcp) |
 | **Workspace** | [Google Workspace MCP](https://github.com/taylorwilsdon/google_workspace_mcp) |
+| **E-commerce** | [Shopify GraphQL Admin API](https://shopify.dev/docs/api/admin-graphql) (v2026-01) |
 | **Blockchain** | [Coinbase AgentKit](https://github.com/coinbase/agentkit) |
 | **Chat** | [Slack Bolt](https://api.slack.com/bolt) (Socket Mode) |
 | **Database** | [Neon Postgres](https://neon.tech/) + pgvector |
 | **Cache** | Redis |
+| **Queue** | [arq](https://github.com/samuelcolvin/arq) (async Redis) |
 | **Scheduling** | APScheduler |
 | **Tokens** | tiktoken |
 | **Observability** | OpenTelemetry (optional) |
@@ -281,7 +350,7 @@ src/auton/
 
 ## Extending
 
-Adding a new specialist agent follows a 10-step recipe. See [AGENTS.md](AGENTS.md) for the full guide.
+Adding a new specialist agent follows a 10-step recipe. See [CLAUDE.md](CLAUDE.md) for the full guide.
 
 ```
 1. Create src/auton/<name>/ with client.py + tools.py

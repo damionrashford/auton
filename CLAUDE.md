@@ -121,17 +121,20 @@ Lifespan initialization order:
 1. Redis health check
 2. Neon Postgres pool + migrations
 3. Playwright MCP subprocess
-4. LLM client (OpenRouter)
+4. LLM client (xAI SDK, gRPC)
 5. Conversation store (Neon or in-memory fallback)
 6. MCPBridge connections (RivalSearch + Playwright + Google Workspace)
 7. Slack outbound service + tools
 8. Cron scheduler + tools
 9. Memory store + tools
 10. Blockchain (AgentKit) + tools
-11. Cron dependency injection
-12. Multi-agent orchestrator + delegation tools
-13. DI singletons
-14. Slack Bolt UI (Socket Mode listener)
+11. Shopify (Admin + Storefront API) + tools
+12. Webhook service + tools
+13. Cron dependency injection
+14. Multi-agent orchestrator + delegation tools
+15. Agent queue (bounded concurrency)
+16. DI singletons
+17. Slack Bolt UI (Socket Mode listener)
 
 Middleware stack: ErrorHandling → Timing → Logging → ResponseCaching (Redis-backed, `chat` excluded).
 
