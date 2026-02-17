@@ -1,4 +1,4 @@
-# AUTON — AI Agent Delegation Framework
+# Auton
 
 [![npm version](https://img.shields.io/npm/v/auton.svg)](https://www.npmjs.com/package/auton)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
