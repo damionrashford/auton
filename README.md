@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 [![Node.js ≥18](https://img.shields.io/badge/node-%3E%3D18-green.svg)](https://nodejs.org)
 
-**AUTON** is a TypeScript framework for **AI agent delegation**, **multi-agent orchestration**, and **adaptive task decomposition**. Build autonomous AI systems that decompose complex tasks, assign work to specialized agents, and verify results—with zero dependencies and full OpenAI compatibility.
+**Auton** is a TypeScript framework for **AI agent delegation**, **multi-agent orchestration**, and **adaptive task decomposition**. Build autonomous AI systems that decompose complex tasks, assign work to specialized agents, and verify results—with zero dependencies and full OpenAI compatibility.
 
 > Based on the research paper [*Intelligent AI Delegation*](https://arxiv.org/abs/2602.11865) (Tomasev, Franklin, Osindero, 2026).
 
