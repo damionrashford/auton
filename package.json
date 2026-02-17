@@ -1,0 +1,29 @@
+{
+  "name": "auton",
+  "version": "1.0.0",
+  "description": "AUTON — AI agent delegation framework. Multi-agent orchestration, task decomposition, TypeScript, zero dependencies, OpenAI-compatible",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc && tsc-alias -p tsconfig.json",
+    "check": "tsc --noEmit"
+  },
+  "files": [
+    "dist"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.3",
+    "tsc-alias": "^1.8.16"
+  }
+}
