@@ -1,0 +1,24 @@
+{
+  "llm": {
+    "apiKey": "",
+    "apiUrl": "https://api.openai.com/v1",
+    "model": "gpt-4o"
+  },
+  "agent": {
+    "maxTurns": 25,
+    "daemonInterval": 30
+  },
+  "slack": {
+    "botToken": "xoxb-YOUR-BOT-TOKEN",
+    "appToken": "xapp-YOUR-APP-TOKEN"
+  },
+  "telegram": {
+    "botToken": "YOUR_TELEGRAM_BOT_TOKEN"
+  },
+  "whatsapp": {
+    "accessToken": "YOUR_META_ACCESS_TOKEN",
+    "phoneNumberId": "YOUR_PHONE_NUMBER_ID",
+    "verifyToken": "any-secret-string",
+    "port": 3000
+  }
+}
