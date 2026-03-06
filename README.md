@@ -42,7 +42,7 @@ Everything else in the file has working defaults and can be left alone until you
 ### One-shot: give it a single task
 
 ```bash
-node agent.js "summarize the files in my Documents folder"
+node src/agent.js "summarize the files in my Documents folder"
 ```
 
 The agent will think through the task, use whatever tools it needs, and stop when it's done. Output prints to the terminal as it works.
@@ -50,7 +50,7 @@ The agent will think through the task, use whatever tools it needs, and stop whe
 ### Daemon: let it run continuously
 
 ```bash
-node agent.js
+node src/agent.js
 ```
 
 With no arguments, the agent runs as a persistent background process. Every 30 seconds it checks for scheduled tasks and active goals, then acts on them. Use this when you want it to keep working on something over time or handle scheduled jobs.
@@ -59,10 +59,10 @@ With no arguments, the agent runs as a persistent background process. Every 30 s
 
 ## Talking to it through messaging apps
 
-`comms.js` connects the agent to Slack, Telegram, and/or WhatsApp. Configure whichever channels you want in `config.json`, then run:
+`src/comms.js` connects the agent to Slack, Telegram, and/or WhatsApp. Configure whichever channels you want in `config.json`, then run:
 
 ```bash
-node comms.js
+node src/comms.js
 ```
 
 It will start all configured channels at once. If a channel's credentials aren't in the config, it's simply skipped.
@@ -174,7 +174,7 @@ Goals are tasks you want the agent to work toward over time. In daemon mode, the
 You can set a goal by asking the agent to do so:
 
 ```bash
-node agent.js "set a goal to monitor my Downloads folder and move PDF files to ~/Documents/PDFs every hour"
+node src/agent.js "set a goal to monitor my Downloads folder and move PDF files to ~/Documents/PDFs every hour"
 ```
 
 Goals have three priority levels: `high`, `medium`, and `low`. The agent works on high-priority goals first.
@@ -188,7 +188,7 @@ In daemon mode, the agent can run tasks on a recurring schedule. Intervals are w
 Example — ask the agent to schedule something:
 
 ```bash
-node agent.js "schedule a task every 1h to check if any process is using more than 80% CPU and log it to ~/cpu-log.txt"
+node src/agent.js "schedule a task every 1h to check if any process is using more than 80% CPU and log it to ~/cpu-log.txt"
 ```
 
 Schedules persist across restarts via `state.json`.
@@ -207,7 +207,7 @@ Each skill is a folder with a `SKILL.md` file inside. The agent can list availab
 
 To install a skill from a git repository:
 ```bash
-node agent.js "install skill from https://github.com/example/some-skill"
+node src/agent.js "install skill from https://github.com/example/some-skill"
 ```
 
 ---
@@ -220,10 +220,10 @@ To connect an MCP server, tell the agent about it and it will persist the connec
 
 ```bash
 # stdio-based server
-node agent.js "connect mcp server named 'mydb' using command 'npx my-db-mcp-server'"
+node src/agent.js "connect mcp server named 'mydb' using command 'npx my-db-mcp-server'"
 
 # HTTP/SSE-based server
-node agent.js "connect mcp server named 'myapi' at url http://localhost:8080/mcp"
+node src/agent.js "connect mcp server named 'myapi' at url http://localhost:8080/mcp"
 ```
 
 Once connected, the server's tools appear automatically alongside the built-in tools. Connections are saved in `state.json` and restored on next startup.

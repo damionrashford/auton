@@ -8,17 +8,17 @@
 
 | File | Role |
 |---|---|
-| `agent.js` | Core agent — LLM loop, built-in tools, MCP client, skill loader |
-| `comms.js` | Messaging bridge — imports and wraps `agent.js` |
+| `src/agent.js` | Core agent — LLM loop, built-in tools, MCP client, skill loader |
+| `src/comms.js` | Messaging bridge — imports and wraps `src/agent.js` |
 | `config.json` | User config — `llm`, `agent`, `slack`, `telegram`, `whatsapp` |
 | `state.json` | Runtime state — auto-created, auto-saved. Do not commit. |
 
 ## Running
 
 ```bash
-node agent.js "do something"   # one-shot task
-node agent.js                  # daemon mode (checks goals/schedules every 30s)
-node comms.js                  # messaging bridge (Slack + Telegram + WhatsApp)
+node src/agent.js "do something"   # one-shot task
+node src/agent.js                  # daemon mode (checks goals/schedules every 30s)
+node src/comms.js                  # messaging bridge (Slack + Telegram + WhatsApp)
 ```
 
 ## Architecture
