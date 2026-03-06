@@ -1,4 +1,4 @@
-# auto
+# auton
 
 An autonomous AI agent you run locally. Give it a task and it works through it — running shell commands, reading and writing files, making HTTP requests, remembering things across sessions, and more. Connect it to Slack, Telegram, or WhatsApp to talk to it from anywhere.
 
